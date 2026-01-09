@@ -22,6 +22,18 @@ DONE:
     prevent out-of-bounds clicks
 */  
 
+
+const btnExport = document.getElementById("exportBtn");
+btnExport.addEventListener('click', onExportClick);
+
+function onExportClick(event) {
+    let output = "";
+
+    
+
+}
+
+
 // fully static variables; never make these dynamic
 const canvas = document.getElementById("designerCanvas");// set a reference to the canvas element in HTML
 const ctx = canvas.getContext("2d");// the drawing context of the canvas

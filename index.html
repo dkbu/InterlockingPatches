@@ -13,7 +13,7 @@
           function loadScript(src) {
             const script = document.createElement("script");
             script.src = src + "?nocache=" + new Date().getTime();
-            script.async = true;
+              script.async = true;
             document.head.appendChild(script);
           }
           function loadCSS(href) {
@@ -34,6 +34,8 @@
   <body>
     <div oncontextmenu="return false;"> <!--this prevents context menu in the canvas, but also in the area to the right of it-->
         <canvas id="designerCanvas" width="20" height="50"></canvas>
+        <input type="button" id="exportBtn" value="Export to Text" />
+        <a href="" id="downloadLink"></a>
     </div>
 
   </body>
