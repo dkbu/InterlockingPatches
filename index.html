@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+
+          // PPath to your CSS file, or empty ("") if none:
+          const CSS_FILE_PATH = "style.css"; 
+    
+          // Path to your JS file, or empty ("") if none:
+          const JS_FILE_PATH = "script.js"; 
+    
+          function loadScript(src) {
+            const script = document.createElement("script");
+            script.src = src + "?nocache=" + new Date().getTime();
+            script.async = true;
+            document.head.appendChild(script);
+          }
+          function loadCSS(href) {
+            const link = document.createElement("link");
+            link.rel = "stylesheet";
+            link.href = href + "?nocache=" + new Date().getTime();
+            document.head.appendChild(link);
+          }
+          if (JS_FILE_PATH) loadScript(JS_FILE_PATH);
+          if (CSS_FILE_PATH) loadCSS(CSS_FILE_PATH);
+      });
+    </script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pattern Designer</title>
+    <!--<link id="favicon" rel="icon" type="image/x-icon" href="Icon.png"> -->
+  </head>
+  <body>
+    <div oncontextmenu="return false;"> <!--this prevents context menu in the canvas, but also in the area to the right of it-->
+        <canvas id="designerCanvas" width="20" height="50"></canvas>
+    </div>
+
+  </body>
