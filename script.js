@@ -1,7 +1,6 @@
 /*
 NOTES:
-    grid coordinates start at 1, not 0. 0 is in the padding area.
-    Controls: left click to start a line, left click again to finish it (or ctrl-left-click to continue the line). right click places an ff
+    Controls: left click to start a stitch, left click again to finish it (or ctrl-left-click to continue the stitch). right click places an ff
     Current implementation relies on the vertical padding and grid size being the same as the horizontal padding and grid size
     TODO is things I knew I'd forget otherwise; DONE is things from that I've finished
 
@@ -19,6 +18,7 @@ TODO:
         otherwise, maybe highlight lines which will not be in the final pattern
     fix ff out-of-bounds (and potential Pattern implications)
         find the condition of - and fix - bug where ff's sometimes stay despite being over their bounds
+    fix "stitches directly after a removed stitch kept no matter what when reducing board size" (caused by splicing out index while in a for loop)
 
 
 DONE:
@@ -116,11 +116,11 @@ class Stitch {
     }
 
     cullX() {
-        if (this.x1<0 || this.x1>width || this.x2<0 || this.x2>width) { removeStitch(this.id); }
+        if (this.x1<0 || this.x1>=width-1 || this.x2<0 || this.x2>=width-1) { removeStitch(this.id); }
     }
 
     cullY() {
-        if (this.y1<0 || this.y1>height || this.y2<0 || this.y2>height) { removeStitch(this.id); }
+        if (this.y1<0 || this.y1>=height-1 || this.y2<0 || this.y2>=height-1) { removeStitch(this.id); }
     }
 
 }
@@ -327,20 +327,18 @@ const background = true; // to indicate when a function needs the background gri
 
 
 // (currently) static variables; when made dynamic, change "const" to "let"
-let width = 10; // how many *foreground* stitches there are horizontally
-let height = 10; // how many *foreground* stitches there are vertically
 const padding = 20; // width, in pixels, of the unused space on each side of the canvas
 const foregroundColor = "rgb(0, 0, 0)";
 const backgroundColor = "rgba(193, 164, 133, 1)";
 const highlightColor = "rgba(110, 68, 224, 1)"
 
 // fully dynamic variables; these change with user input
-let heldPoint = {x: 0, y: 0, active: false}; // tracks the start point of a line, if there is one
+let width = 10; // how many *foreground* stitches there are horizontally
+let height = 10; // how many *foreground* stitches there are vertically
+let heldPoint = {x: 0, y: 0, active: false}; // tracks the start point of a stitch, if there is one
 let pixelX, pixelY, foregroundX, foregroundY, backgroundX, backgroundY = 0; // these will change as soon as the user interacts with the canvas
 
 // calculated variables; will need to be recalculated when their constituent parts are changed
-// an array of objects defining each connection. first is the top point, or leftmost if they're on the same Y
-let lines = [];
 // an array of objects, which are an x and y of points covered by an ff
 let ff = [];
 let backgroundWidth = width-1; // how many *background* stitches there are horizontally
@@ -368,10 +366,10 @@ function resizeScreen() {
         canvas.width = window.screen.width*0.8;
         canvas.height = height*gridMultiplier + 2*padding;
     }
-    xLimit = gridToPixel(width);
-    yLimit = gridToPixel(height);
-    backgroundXLimit = gridToPixel(backgroundWidth, background);
-    backgroundYLimit = gridToPixel(backgroundHeight, background);
+    xLimit = gridToPixel(width-1);
+    yLimit = gridToPixel(height-1);
+    backgroundXLimit = gridToPixel(backgroundWidth-1, background);
+    backgroundYLimit = gridToPixel(backgroundHeight-1, background);
     lineWidth = gridMultiplier/2.5;
     circleRadius = lineWidth/2; // to round off sharp lines
     thinWidth = lineWidth/3; // may need to be slightly wider or thinner, not sure yet
@@ -411,32 +409,32 @@ function frame() {
 
 
     ctx.lineWidth = lineWidth;
-    // draw the foreground lines
+    // draw the foreground base
     ctx.strokeStyle = foregroundColor;
     ctx.beginPath();
-    for (let x=gridToPixel(1); x<=xLimit; x+=gridMultiplier) {
+    for (let x=gridToPixel(0); x<=xLimit; x+=gridMultiplier) {
         // for each vertical column, draw a line top to bottom
-        ctx.moveTo(x, gridToPixel(1));
+        ctx.moveTo(x, gridToPixel(0));
         ctx.lineTo(x, yLimit);
     }
-    for (let y=gridToPixel(1); y<=yLimit; y+=gridMultiplier) {
+    for (let y=gridToPixel(0); y<=yLimit; y+=gridMultiplier) {
         // for each horizontal row, draw a line top to bottom
-        ctx.moveTo(gridToPixel(1), y);
+        ctx.moveTo(gridToPixel(0), y);
         ctx.lineTo(xLimit, y);
     }
     ctx.stroke();
 
-    // draw the background lines
+    // draw the background base
     ctx.strokeStyle = backgroundColor;
     ctx.beginPath();
-    for (let x=gridToPixel(1, background); x<=backgroundXLimit; x+=gridMultiplier) {
+    for (let x=gridToPixel(0, background); x<=backgroundXLimit; x+=gridMultiplier) {
         // for each vertical column, draw a line top to bottom
-        ctx.moveTo(x, gridToPixel(1, background));
+        ctx.moveTo(x, gridToPixel(0, background));
         ctx.lineTo(x, backgroundYLimit);
     }
-    for (let y=gridToPixel(1, background); y<=backgroundYLimit; y+=gridMultiplier) {
+    for (let y=gridToPixel(0, background); y<=backgroundYLimit; y+=gridMultiplier) {
         // for each horizontal row, draw a line top to bottom
-        ctx.moveTo(gridToPixel(1, background), y);
+        ctx.moveTo(gridToPixel(0, background), y);
         ctx.lineTo(backgroundXLimit, y);
     }
     ctx.stroke();
@@ -453,13 +451,13 @@ function frame() {
         ctx.lineTo(gridToPixel(f.x), gridToPixel(f.y)+gridMultiplier/2);
     }
     ctx.stroke();
-    // draw placed lines
+    // draw placed stitches
     ctx.globalAlpha = 1;
     ctx.strokeStyle = foregroundColor;
     ctx.beginPath();
-    for (const line of lines) {
-        ctx.moveTo(gridToPixel(line.x1), gridToPixel(line.y1));
-        ctx.lineTo(gridToPixel(line.x2), gridToPixel(line.y2));
+    for (const stitch of stitches) {
+        ctx.moveTo(gridToPixel(stitch.x1), gridToPixel(stitch.y1));
+        ctx.lineTo(gridToPixel(stitch.x2), gridToPixel(stitch.y2));
     }
     ctx.stroke();
     
@@ -469,14 +467,14 @@ function frame() {
     ctx.fillStyle = highlightColor;
     ctx.strokeStyle = highlightColor;
     ctx.beginPath();
-    // draw the line that would be snapped to, if theres currently a start point for a line
+    // draw the angle that would be snapped to, if theres currently a start point for a stitch
     if (heldPoint.active) {
         // start at the start point, draw the rounding-off circle, line to the snapped-to point,
         ctx.moveTo(gridToPixel(heldPoint.x), gridToPixel(heldPoint.y));
-        ctx.lineTo(gridToPixel(foregroundX), gridToPixel(foregroundY));
+        ctx.lineTo(gridToPixel(clamp(foregroundX, 0, width-1)), gridToPixel(clamp(foregroundY, 0, height-1)));
         ctx.stroke();
     } else {
-        // if there's no line, draw the snapped-to circle
+        // if there's no start point, draw the snapped-to circle
         ctx.moveTo(gridToPixel(foregroundX), gridToPixel(foregroundY));
         ctx.arc(gridToPixel(foregroundX), gridToPixel(foregroundY), circleRadius, 0, pi2);
         ctx.fill();
@@ -505,15 +503,15 @@ canvas.addEventListener('click', function(evt) {
     // for testing - logs which grid points are associated with the current pixel
     // console.log("pixel:", pixelX, pixelY, "\nforeground:", foregroundX, foregroundY, "\nbackground:", backgroundX, backgroundY);
     // if clicking inside the pattern (not the padding), edit the pattern
-    if (foregroundX == clamp(foregroundX, 1, width) && foregroundY == clamp(foregroundY, 1, height)) {
-        if (heldPoint.active) { // place a line if there's already a held point
+    if (foregroundX == clamp(foregroundX, 0, width-1) && foregroundY == clamp(foregroundY, 0, height-1)) {
+        if (heldPoint.active) { // place a stitch if there's already a held point
             // delete the held point if clicking in the same spot
             if (heldPoint.x == foregroundX && heldPoint.y == foregroundY) {
                 heldPoint.active = false;
-            // if not deleting, place/remove the line and remove/move the held point
+            // if not deleting, place/remove the stitch and remove/move the held point
             } else {
                 let placing = {}; // will need x1, y1, x2, y2 in all cases
-                // if placing a horizontal line,
+                // if placing a horizontal stitch,
                 if (heldPoint.y == foregroundY) {
                     // put the leftmost point first
                     if (heldPoint.x < foregroundX) {
@@ -527,7 +525,7 @@ canvas.addEventListener('click', function(evt) {
                         placing.x2 = heldPoint.x;
                         placing.y2 = heldPoint.y;
                     }
-                // if not placing a horizontal line,
+                // if not placing a horizontal stitch,
                 } else {
                     // put the uppermost point first
                     if (heldPoint.y < foregroundY) {
@@ -543,25 +541,23 @@ canvas.addEventListener('click', function(evt) {
                     }
                 }
 
-                // toggle the line
-                // if the line already exists, find it
-                const indexOfExisting = lines.findIndex(item => 
+                // toggle the stitch
+                // if the stitch already exists, find it
+                const indexOfExisting = stitches.findIndex(item => 
                     item.x1 == placing.x1 && 
                     item.y1 == placing.y1 && 
                     item.x2 == placing.x2 && 
                     item.y2 == placing.y2); // theres probably a better way to do this but structuredClone()ing each didnt work
                 // if you didn't find it, add it
                 if (indexOfExisting == -1) {
-                    lines.push(structuredClone(placing));
-                    stitches.push(new Stitch(placing.x1 - 1, placing.y1 - 1, placing.x2 - 1, placing.y2 - 1));
+                    stitches.push(new Stitch(placing.x1, placing.y1, placing.x2, placing.y2));
                 // if you did find it, remove it
                 } else {
-                    lines.splice(indexOfExisting, 1);
                     stitches = stitches.filter(item =>
-                        !(item.x1 == placing.x1 - 1 && 
-                        item.y1 == placing.y1 - 1 && 
-                        item.x2 == placing.x2 - 1 && 
-                        item.y2 == placing.y2 - 1));
+                        !(item.x1 == placing.x1 && 
+                        item.y1 == placing.y1 && 
+                        item.x2 == placing.x2 && 
+                        item.y2 == placing.y2));
                 }
 
 
@@ -596,11 +592,6 @@ canvas.addEventListener('click', function(evt) {
             for (const stitch of stitches) {
                 stitch.pushX();
             }
-            // change lines array, while its still needed. Hopefully remove later
-            for (const line of lines) {
-                line.x1++;
-                line.x2++;
-            }
             for (fill of ff) {
                 fill.x++;
             }
@@ -610,11 +601,6 @@ canvas.addEventListener('click', function(evt) {
             backgroundHeight++;
             for (const stitch of stitches) {
                 stitch.pushY();
-            }
-            // change lines array, while its still needed. Hopefully remove later
-            for (const line of lines) {
-                line.y1++;
-                line.y2++;
             }
             for (fill of ff) {
                 fill.y++;
@@ -627,7 +613,7 @@ canvas.addEventListener('click', function(evt) {
 })
 canvas.addEventListener('contextmenu', function(evt) {
     // if clicking inside the pattern (not the padding), edit the pattern
-    if (foregroundX == clamp(foregroundX, 2, backgroundWidth) && foregroundY == clamp(foregroundY, 2,backgroundHeight)) {
+    if (foregroundX == clamp(foregroundX, 1, width-2) && foregroundY == clamp(foregroundY, 1, height-2)) {
         const indexOfExisting = ff.findIndex(item =>
             item.x == foregroundX &&
             item.y == foregroundY);
@@ -646,13 +632,8 @@ canvas.addEventListener('contextmenu', function(evt) {
             for (const stitch of stitches) {
                 stitch.cullX();
             }
-            for (const line of lines) {
-                if (line.x1>width || line.x2>width) {
-                    lines.splice(lines.indexOf(line), 1);
-                }
-            }
             for (const fill of ff) {
-                if (fill.x>backgroundWidth) {
+                if (fill.x>=backgroundWidth) {
                     ff.splice(ff.indexOf(fill), 1)
                 }
             }
@@ -663,13 +644,8 @@ canvas.addEventListener('contextmenu', function(evt) {
             for (const stitch of stitches) {
                 stitch.cullY();
             }
-            for (const line of lines) {
-                if (line.y1>height || line.y2>height) {
-                    lines.splice(lines.indexOf(line), 1);
-                }
-            }
             for (const fill of ff) {
-                if (fill.y>backgroundHeight) {
+                if (fill.y>=backgroundHeight) {
                     ff.splice(ff.indexOf(fill), 1)
                 }
             }
@@ -679,14 +655,6 @@ canvas.addEventListener('contextmenu', function(evt) {
             backgroundWidth--;
             for (const stitch of stitches) {
                 stitch.pullX();
-            }
-            // change lines array, while its still needed. Hopefully remove later
-            for (const line of lines) {
-                line.x1--;
-                line.x2--;
-                if (line.x1<1 || line.x2<1) {
-                    lines.splice(lines.indexOf(line), 1);
-                }
             }
             for (const fill of ff) {
                 fill.x--;
@@ -700,14 +668,6 @@ canvas.addEventListener('contextmenu', function(evt) {
             backgroundHeight--;
             for (const stitch of stitches) {
                 stitch.pullY();
-            }
-            // change lines array, while its still needed. Hopefully remove later
-            for (const line of lines) {
-                line.y1--;
-                line.y2--;
-                if (line.y1<1 || line.y2<1) {
-                    lines.splice(lines.indexOf(line), 1);
-                }
             }
             for (const fill of ff) {
                 fill.y--;
@@ -726,7 +686,7 @@ canvas.addEventListener('contextmenu', function(evt) {
 // convert from a pixel location to its associated foreground or background grid location.
 function pixelToGrid(pixelX, onBackground = false) {
     if (!onBackground) { // if placing in the foreground grid
-        return Math.floor((pixelX-padding)/gridMultiplier+1); // the +1 is because grid coordinates start at 1
+        return Math.floor((pixelX-padding)/gridMultiplier);
     } else { // if placing in the background grid
         return Math.floor((pixelX-padding)/gridMultiplier+0.5); // shift half a grid coordinate up/right
     }
@@ -734,17 +694,14 @@ function pixelToGrid(pixelX, onBackground = false) {
 // convert from a grid unit to the associated pixel location
 function gridToPixel(gridX, onBackground = false) {
     if (!onBackground) { // if converting from the foreground grid,
-        return (gridX-0.5)*gridMultiplier+padding+0.5;
-        // The -0.5 is:
-        // -1 for starting grid coordinates at 1 
-        // +0.5 to center it rather than have it in the corner of the bounding box
-        // The +0.5 is to mitigate anti-aliasing (when possible)
+        return (gridX+0.5)*gridMultiplier+padding+0.5;
+        // gridX+0.5 to center it rather than have it in the corner of the bounding box
+        // The ending +0.5 is to mitigate anti-aliasing (when possible)
     } else { // if converting from the background grid,
-        return (gridX)*gridMultiplier+padding+0.5;
-        // no constant because:
-        // -1 for starting grid coordinates at 1
+        return (gridX+1)*gridMultiplier+padding+0.5;
+        // gridX+1 because:
         // +0.5 to center it
-        // -0.5 to shift to background coordinates
+        // +0.5 to shift to background coordinates
     }
 }
 // clamp a number between two other numbers
