@@ -259,8 +259,4 @@ function createPattern(stitches, height, width) {
 }
 
 // Export classes and functions
-export {
-    Stitch,
-    Pattern,
-    createPattern
-};
+// Exports Stitch, Pattern, createPattern
