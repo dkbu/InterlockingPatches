@@ -19,13 +19,17 @@ body {
     padding: 10px;
 }
 
-.instructions {
+.sidebar {
     padding: 10px;
     max-width: 400px;
     font-family: Arial, sans-serif;
     background-color: #f9f9f9;
     grid-row: 1;
     grid-column: 2;
+}
+
+.sidebar > * {
+    margin-top: 10px;
 }
 
 .canvas_div {

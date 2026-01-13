@@ -12,9 +12,9 @@ const background = true; // to indicate when a function needs the background gri
 
 // Style constants
 const padding = 20; // width, in pixels, of the unused space on each side of the canvas
-const foregroundColor = "rgb(0, 0, 0)";
-const backgroundColor = "rgba(193, 164, 133, 1)";
-const highlightColor = "rgba(110, 68, 224, 1)";
+const foregroundColorPicker = document.getElementById("foregroundColor");
+const backgroundColorPicker = document.getElementById("backgroundColor");
+const highlightColor = "#6e44e0";
 
 // Dynamic variables that change with user input
 let width = 10; // how many *foreground* stitches there are horizontally
@@ -95,7 +95,7 @@ function frame() {
 
     ctx.lineWidth = lineWidth;
     // draw the foreground base
-    ctx.strokeStyle = foregroundColor;
+    ctx.strokeStyle = foregroundColorPicker.value;
     ctx.beginPath();
     for (let x = gridToPixel(0); x <= xLimit; x += gridMultiplier) {
         // for each vertical column, draw a line top to bottom
@@ -110,7 +110,7 @@ function frame() {
     ctx.stroke();
 
     // draw the background base
-    ctx.strokeStyle = backgroundColor;
+    ctx.strokeStyle = backgroundColorPicker.value;
     ctx.beginPath();
     for (let x = gridToPixel(0, background); x <= backgroundXLimit; x += gridMultiplier) {
         // for each vertical column, draw a line top to bottom
@@ -126,7 +126,7 @@ function frame() {
 
     // draw dynamic pieces on top
     // draw placed ff's
-    ctx.strokeStyle = backgroundColor;
+    ctx.strokeStyle = backgroundColorPicker.value;
     ctx.beginPath();
     for (const f of ff) { // for each ff,
         // move to above the covered grid point
@@ -138,7 +138,7 @@ function frame() {
     
     // draw placed stitches
     ctx.globalAlpha = 1;
-    ctx.strokeStyle = foregroundColor;
+    ctx.strokeStyle = foregroundColorPicker.value;
     ctx.beginPath();
     for (const stitch of stitches) {
         ctx.moveTo(gridToPixel(stitch.x1), gridToPixel(stitch.y1));
@@ -175,8 +175,8 @@ function removeStitch(removedId) {
     }
 }
 
-// Mouse event handlers
-canvas.addEventListener('mousemove', function (evt) {
+// Event handlers
+canvas.addEventListener("mousemove", function (evt) {
     const canvasPos = canvas.getBoundingClientRect();
     pixelX = evt.clientX - canvasPos.left;
     pixelY = evt.clientY - canvasPos.top;
@@ -185,7 +185,7 @@ canvas.addEventListener('mousemove', function (evt) {
     frame();
 });
 
-canvas.addEventListener('click', function (evt) {
+canvas.addEventListener("click", function (evt) {
     // if clicking inside the pattern (not the padding), edit the pattern
     if (foregroundX == clamp(foregroundX, 0, width - 1) && foregroundY == clamp(foregroundY, 0, height - 1)) {
         if (heldPoint.active) { // place a stitch if there's already a held point
@@ -295,7 +295,7 @@ canvas.addEventListener('click', function (evt) {
     }
 });
 
-canvas.addEventListener('contextmenu', function (evt) {
+canvas.addEventListener("contextmenu", function (evt) {
     // if clicking inside the pattern (not the padding), edit the pattern
     if (foregroundX == clamp(foregroundX, 1, width - 2) && foregroundY == clamp(foregroundY, 1, height - 2)) {
         const indexOfExisting = ff.findIndex(item =>
@@ -362,6 +362,9 @@ canvas.addEventListener('contextmenu', function (evt) {
         getGridPositions();
     }
 });
+
+foregroundColorPicker.addEventListener("change", frame);
+backgroundColorPicker.addEventListener("change", frame);
 
 // Utility functions
 function pixelToGrid(pixelX, onBackground = false) {
