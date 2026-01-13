@@ -11,3 +11,24 @@ canvas {
 body {
     margin: 0;
 }
+
+.container {
+    display: grid;
+    grid-template-columns: auto auto;
+    gap: 20px;
+    padding: 10px;
+}
+
+.instructions {
+    padding: 10px;
+    max-width: 400px;
+    font-family: Arial, sans-serif;
+    background-color: #f9f9f9;
+    grid-row: 1;
+    grid-column: 2;
+}
+
+.canvas_div {
+    grid-row: 1;
+    grid-column: 1;
+}
