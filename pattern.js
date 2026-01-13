@@ -216,12 +216,15 @@ class Pattern {
         } else {
             new_row += currentStitchVal;
         }
+        // TODO: will need some extra checks for ff stitches, which, 
+        // when combined, follow the pattern (2*currentStitchCount+1)
+
 
         return new_row;
     }
 
     compress() {
-        // reduce multiple stitches in a row/column into a single representation
+        // reduce multiple stitches in a row into a single representation
         for (let i = 0; i < this.rowsA.length; i++) {
             this.rowsA[i] = this.compress_row(this.rowsA[i]);
         }
