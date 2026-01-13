@@ -22,6 +22,16 @@
     <!--<link id="favicon" rel="icon" type="image/x-icon" href="Icon.png"> -->
   </head>
   <body>
+    <div id="instructions">
+      <details> <summary><h2>Instructions</h2></summary>
+      <p>To draw a stitch, click the starting point and then click the ending point.<br/>
+        To erase a stitch, click the starting and ending point again.<br/>
+        Use right-click to place an ff point.<br/>
+        To add rows or columns, click the sides of the canvas.<br/>
+        To remove rows or columns, right click the sides of the canvas.<br/>
+      </p>
+      </details>
+    </div>
     <div oncontextmenu="return false;"> <!--this prevents context menu in the canvas, but also in the area to the right of it-->
         <canvas id="designerCanvas" width="20" height="50"></canvas>
         <input type="button" id="exportBtn" value="Export to Text" style="display:none;" />
