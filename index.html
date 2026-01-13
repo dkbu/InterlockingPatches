@@ -4,25 +4,15 @@
     <script>
       document.addEventListener("DOMContentLoaded", function () {
 
-          // PPath to your CSS file, or empty ("") if none:
+          // Path to your CSS file, or empty ("") if none:
           const CSS_FILE_PATH = "style.css"; 
     
-          // Path to your JS file, or empty ("") if none:
-          const JS_FILE_PATH = "script.js"; 
-    
-          function loadScript(src) {
-            const script = document.createElement("script");
-            script.src = src + "?nocache=" + new Date().getTime();
-              script.async = true;
-            document.head.appendChild(script);
-          }
           function loadCSS(href) {
             const link = document.createElement("link");
             link.rel = "stylesheet";
             link.href = href + "?nocache=" + new Date().getTime();
             document.head.appendChild(link);
           }
-          if (JS_FILE_PATH) loadScript(JS_FILE_PATH);
           if (CSS_FILE_PATH) loadCSS(CSS_FILE_PATH);
       });
     </script>
@@ -34,8 +24,11 @@
   <body>
     <div oncontextmenu="return false;"> <!--this prevents context menu in the canvas, but also in the area to the right of it-->
         <canvas id="designerCanvas" width="20" height="50"></canvas>
-        <input type="button" id="exportBtn" value="Export to Text" />
+        <input type="button" id="exportBtn" value="Export to Text" style="display:none;" />
         <a href="" id="downloadLink"></a>
     </div>
 
+    <!-- Import modules -->
+    <script type="module" src="canvas.js"></script>
+    <script type="module" src="script.js"></script>
   </body>
