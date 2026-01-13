@@ -194,56 +194,73 @@ canvas.addEventListener('click', function (evt) {
                 heldPoint.active = false;
                 // if not deleting, place/remove the stitch and remove/move the held point
             } else {
-                let placing = {}; // will need x1, y1, x2, y2 in all cases
-                // if placing a horizontal stitch,
-                if (heldPoint.y == foregroundY) {
-                    // put the leftmost point first
-                    if (heldPoint.x < foregroundX) {
-                        placing.x1 = heldPoint.x;
-                        placing.y1 = heldPoint.y;
-                        placing.x2 = foregroundX;
-                        placing.y2 = foregroundY;
-                    } else {
-                        placing.x1 = foregroundX;
-                        placing.y1 = foregroundY;
-                        placing.x2 = heldPoint.x;
-                        placing.y2 = heldPoint.y;
-                    }
-                    // if not placing a horizontal stitch,
-                } else {
-                    // put the uppermost point first
-                    if (heldPoint.y < foregroundY) {
-                        placing.x1 = heldPoint.x;
-                        placing.y1 = heldPoint.y;
-                        placing.x2 = foregroundX;
-                        placing.y2 = foregroundY;
-                    } else {
-                        placing.x1 = foregroundX;
-                        placing.y1 = foregroundY;
-                        placing.x2 = heldPoint.x;
-                        placing.y2 = heldPoint.y;
+                // find how many stitches constitute the line drawn
+                const xDelta = foregroundX - heldPoint.x;
+                const yDelta = foregroundY - heldPoint.y;
+                const greaterDistance = Math.max(Math.abs(xDelta), Math.abs(yDelta));
+                let greatestFactor = 1;
+                let xIncrement = xDelta;
+                let yIncrement = yDelta;
+                // decrease the potential factor until finding one that works
+                for (let i = greaterDistance; i > greatestFactor; i--) {
+                    if (xDelta % i == 0 && yDelta % i == 0) {
+                        greatestFactor = i;
+                        xIncrement = xDelta / greatestFactor;
+                        yIncrement = yDelta / greatestFactor;
+
                     }
                 }
+                for (let i = 0; i < greatestFactor; i++) {
+                    let placing = {}; // will need x1, y1, x2, y2 in all cases
+                    // if placing a horizontal stitch,
+                    if (yIncrement == 0) {
+                        // put the leftmost point first
+                        if (xIncrement > 0) {
+                            placing.x1 = heldPoint.x+xIncrement*i;
+                            placing.y1 = heldPoint.y+yIncrement*i;
+                            placing.x2 = heldPoint.x+xIncrement*(i+1);
+                            placing.y2 = heldPoint.y+yIncrement*(i+1);
+                        } else {
+                            placing.x1 = heldPoint.x+xIncrement*(i+1);
+                            placing.y1 = heldPoint.y+yIncrement*(i+1);
+                            placing.x2 = heldPoint.x+xIncrement*i;
+                            placing.y2 = heldPoint.y+yIncrement*i;
+                        }
+                        // if not placing a horizontal stitch,
+                    } else {
+                        // put the uppermost point first
+                        if (yIncrement > 0) {
+                            placing.x1 = heldPoint.x+xIncrement*i;
+                            placing.y1 = heldPoint.y+yIncrement*i;
+                            placing.x2 = heldPoint.x+xIncrement*(i+1);
+                            placing.y2 = heldPoint.y+yIncrement*(i+1);
+                        } else {
+                            placing.x1 = heldPoint.x+xIncrement*(i+1);
+                            placing.y1 = heldPoint.y+yIncrement*(i+1);
+                            placing.x2 = heldPoint.x+xIncrement*i;
+                            placing.y2 = heldPoint.y+yIncrement*i;
+                        }
+                    }
 
-                // toggle the stitch
-                // if the stitch already exists, find it
-                const indexOfExisting = stitches.findIndex(item =>
-                    item.x1 == placing.x1 &&
-                    item.y1 == placing.y1 &&
-                    item.x2 == placing.x2 &&
-                    item.y2 == placing.y2);
-                // if you didn't find it, add it
-                if (indexOfExisting == -1) {
-                    stitches.push(new Stitch(placing.x1, placing.y1, placing.x2, placing.y2));
-                    // if you did find it, remove it
-                } else {
-                    stitches = stitches.filter(item =>
-                        !(item.x1 == placing.x1 &&
-                            item.y1 == placing.y1 &&
-                            item.x2 == placing.x2 &&
-                            item.y2 == placing.y2));
+                    // toggle the stitch
+                    // if the stitch already exists, find it
+                    const indexOfExisting = stitches.findIndex(item =>
+                        item.x1 == placing.x1 &&
+                        item.y1 == placing.y1 &&
+                        item.x2 == placing.x2 &&
+                        item.y2 == placing.y2);
+                    // if you didn't find it, add it
+                    if (indexOfExisting == -1) {
+                        stitches.push(new Stitch(placing.x1, placing.y1, placing.x2, placing.y2));
+                        // if you did find it, remove it
+                    } else {
+                        stitches = stitches.filter(item =>
+                            !(item.x1 == placing.x1 &&
+                                item.y1 == placing.y1 &&
+                                item.x2 == placing.x2 &&
+                                item.y2 == placing.y2));
+                    }
                 }
-
                 // if ctrl is being held, move the held point to the new spot
                 if (evt.ctrlKey) {
                     heldPoint.x = foregroundX;
