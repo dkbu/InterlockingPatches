@@ -412,12 +412,16 @@ addEventListener("keydown", (evt) => {
             case "KeyZ":
                 if (stitches.length > 0) {
                     // take out the last-made stitch and log it, so it can be re-done later
-                    undone.push(stitches.pop());
+                    const popped = stitches.pop()
+                    // push to the other array if stitches wasn't empty
+                    if (popped) { undone.push(popped); }
+                    
                 }
                 break;
             case "KeyY":
                 if(undone.length > 0) {
-                    stitches.push(undone.pop());
+                    const popped = undone.pop()
+                    if (popped) { stitches.push(popped); }
                 }
                 break;
         }
