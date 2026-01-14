@@ -25,6 +25,8 @@ let pixelX, pixelY, foregroundX, foregroundY, backgroundX, backgroundY = 0;
 // Arrays for stitches and ff points
 let stitches = [];
 let ff = [];
+// track undone stitches so they can be re-done
+let undone = [];
 
 // Calculated variables
 let backgroundWidth = width - 1;
@@ -252,6 +254,9 @@ canvas.addEventListener('click', function (evt) {
                 } else {
                     heldPoint.active = false;
                 }
+
+                // clear the re-do-able stitches to prevent branching with ctrl+y (redo)
+                undone = [];
             }
         } else { // if there's not a held point, hold this point
             heldPoint.x = foregroundX;
@@ -362,6 +367,26 @@ canvas.addEventListener('contextmenu', function (evt) {
         getGridPositions();
     }
 });
+// Keyboard keybinds
+addEventListener("keydown", (evt) => {
+    // ctrl+key keybinds
+    if (evt.ctrlKey) {
+        switch (evt.code) {
+            case "KeyZ":
+                if (stitches.length > 0) {
+                    // take out the last-made stitch and log it, so it can be re-done later
+                    undone.push(stitches.pop());
+                }
+                break;
+            case "KeyY":
+                if(undone.length > 0) {
+                    stitches.push(undone.pop());
+                }
+                break;
+        }
+    }
+    frame();
+})
 
 // Utility functions
 function pixelToGrid(pixelX, onBackground = false) {
