@@ -32,18 +32,23 @@
   </head>
   <body>
     <div id="container" class="container">
-    <div id="instructions" class="instructions">
-      <details> <summary>Instructions</summary>
-      <p><ul><li>To draw a stitch, click the starting point and then click the ending point.</li>
-        <li>To erase a stitch, click the starting and ending point again.</li>
-        <li>Use right-click to place an ff point.</li>
-        <li>To add rows or columns, click the sides of the canvas.</li>
-        <li>To remove rows or columns, right click the sides of the canvas.</li></ul>
-      </p>
-      </details>
-          <!-- ko-fi donation button -->
-    <script type='text/javascript' src='https://storage.ko-fi.com/cdn/widget/Widget_2.js'></script><script type='text/javascript'>kofiwidget2.init('Support the devs on Ko-fi', '#72a4f2', 'I2I51S7I62');kofiwidget2.draw();</script> 
-    </div>
+      <div id="sidebar" class="sidebar">
+        <details> <summary>Instructions</summary>
+        <p><ul><li>To draw a stitch, click the starting point and then click the ending point.</li>
+          <li>Ctrl+click when ending a stitch to start a new stitch there.</li>
+          <li>To erase a stitch, click the starting and ending point again.</li>
+          <li>Use right-click to place an ff point.</li>
+          <li>To add rows or columns, click the sides of the canvas.</li>
+          <li>To remove rows or columns, right click the sides of the canvas.</li></ul>
+        </p>
+        </details>
+        <input type="color" id="foregroundColor" name="foregroundColor" value="#000000">
+        <label for="foregroundColor">Foreground Color</label> <br>
+        <input type="color" id="backgroundColor" name="backgroundColor" value="#c1a485">
+        <label for="backgroundColor">Background Color</label>
+            <!-- ko-fi donation button -->
+        <script type='text/javascript' src='https://storage.ko-fi.com/cdn/widget/Widget_2.js'></script><script type='text/javascript'>kofiwidget2.init('Support the devs on Ko-fi', '#72a4f2', 'I2I51S7I62');kofiwidget2.draw();</script> 
+      </div>
     <div class="canvas_div" oncontextmenu="return false;"> <!--this prevents context menu in the canvas, but also in the area to the right of it-->
         <canvas id="designerCanvas" width="20" height="50"></canvas>
         <input type="button" id="exportBtn" value="Export to Text" style="display:none;" />
