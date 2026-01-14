@@ -31,8 +31,8 @@ DONE:
 */  
 
 // Import modules
-import { getStitches, getDimensions } from './canvas.js';
-import { createPattern } from './pattern.js';
+// Imports getStitches, getDimensions from canvas.js
+// Imports createPattern from pattern.js
 
 // Export button functionality
 const btnExport = document.getElementById("exportBtn");

@@ -4,9 +4,17 @@
     <script>
       document.addEventListener("DOMContentLoaded", function () {
 
-          // Path to your CSS file, or empty ("") if none:
+          // Path to your CSS file, or empty "" if none:
           const CSS_FILE_PATH = "style.css"; 
+          // Paths to your JS files, or empty [] if none:
+          const JS_FILE_PATHS = ["pattern.js", "canvas.js", "script.js"]; 
     
+          function loadScript(src) {
+            const script = document.createElement("script");
+            script.src = src + "?nocache=" + new Date().getTime();
+              script.async = true;
+            document.head.appendChild(script);
+          }
           function loadCSS(href) {
             const link = document.createElement("link");
             link.rel = "stylesheet";
@@ -14,7 +22,7 @@
             document.head.appendChild(link);
           }
           if (CSS_FILE_PATH) loadCSS(CSS_FILE_PATH);
-          if (JS_FILE_PATH) loadScript(JS_FILE_PATH);
+          for (const PATH of JS_FILE_PATHS) loadScript(PATH);
       });
     </script>
     <meta charset="UTF-8">
@@ -42,7 +50,4 @@
         <a href="" id="downloadLink"></a>
     </div>
 </div>
-    <!-- Import modules -->
-    <script type="module" src="canvas.js"></script>
-    <script type="module" src="script.js"></script>
-  </body>
+</body>

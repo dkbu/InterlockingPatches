@@ -1,6 +1,5 @@
 // Canvas-related functionality for the Interlocking Patch Maker
-import { createPattern } from './pattern.js';
-import { Stitch } from './pattern.js';
+// Imports createPattern, Stitch from pattern.js
 
 // Canvas and drawing context
 const canvas = document.getElementById("designerCanvas");
@@ -399,11 +398,4 @@ function getDimensions() {
 }
 
 // Export functions and variables that need to be accessed from other modules
-export {
-    stitches,
-    ff,
-    removeStitch,
-    frame,
-    getStitches,
-    getDimensions
-};
+// Exports stitches, ff, removeStitch, frame, getStitches, getDimensions
