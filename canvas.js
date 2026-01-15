@@ -14,11 +14,16 @@ const background = true; // to indicate when a function needs the background gri
 const padding = 20; // width, in pixels, of the unused space on each side of the canvas
 const foregroundColorPicker = document.getElementById("foregroundColor");
 const backgroundColorPicker = document.getElementById("backgroundColor");
+const canvasWidthInput = document.getElementById("canvasXStitches");
+const canvasHeightInput = document.getElementById("canvasYStitches");
 const highlightColor = "#6e44e0";
 
 // Dynamic variables that change with user input
 let width = 10; // how many *foreground* stitches there are horizontally
 let height = 10; // how many *foreground* stitches there are vertically
+// reset the input fields on refresh
+canvasWidthInput.value = 10;
+canvasHeightInput.value = 10;
 let heldPoint = { x: 0, y: 0, active: false }; // tracks the start point of a stitch, if there is one
 let pixelX, pixelY, foregroundX, foregroundY, backgroundX, backgroundY = 0;
 
@@ -35,6 +40,47 @@ let gridMultiplier, lineWidth, circleRadius, thinWidth, thinRadius, xLimit, yLim
 
 // Initialize the canvas
 resizeScreen();
+
+function resizeCanvas() {
+    const oldWidth = width;
+    const oldHeight = height;
+    width = canvasWidthInput.value;
+    height = canvasHeightInput.value;
+    backgroundWidth = width - 1;
+    backgroundHeight = height - 1;
+    let canvasShrank = false;
+
+
+    // if the canvas is any smaller than it was, remove stitches outside
+    if (width < oldWidth) {
+        canvasShrank = true;
+        for (let i = stitches.length-1; i >= 0; i--) {
+            if (stitches[i].cullX(width)) {
+                stitches.splice(i, 1);
+            }
+        }
+        for (let i = ff.length-1; i >= 0; i--) {
+            if (ff[i].x >= backgroundWidth) {
+                ff.splice(i, 1);
+            }
+        }
+    }
+    if (height < oldHeight) {
+        canvasShrank = true;
+        for (let i = stitches.length-1; i >= 0; i--) {
+            if (stitches[i].cullY(height)) {
+                stitches.splice(i, 1);
+            }
+        }
+        for (let i = ff.length-1; i >= 0; i--) {
+            if (ff[i].y >= backgroundHeight) {
+                ff.splice(i, 1);
+            }
+        }
+    }
+
+    resizeScreen();
+}
 
 // Variable Calculation Functions
 function resizeScreen() {
@@ -304,16 +350,13 @@ canvas.addEventListener("click", function (evt) {
         // if clicking in the padding, expand the grid
     } else {
         if (pixelX >= canvas.width - padding) {
-            width++;
-            backgroundWidth++;
+            canvasWidthInput.value++
         }
         if (pixelY >= canvas.height - padding) {
-            height++;
-            backgroundHeight++;
+            canvasHeightInput.value++
         }
         if (pixelX <= padding) {
-            width++;
-            backgroundWidth++;
+            canvasWidthInput.value++
             for (const stitch of stitches) {
                 stitch.pushX();
             }
@@ -322,8 +365,7 @@ canvas.addEventListener("click", function (evt) {
             }
         }
         if (pixelY <= padding) {
-            height++;
-            backgroundHeight++;
+            canvasHeightInput.value++
             for (const stitch of stitches) {
                 stitch.pushY();
             }
@@ -331,7 +373,7 @@ canvas.addEventListener("click", function (evt) {
                 fill.y++;
             }
         }
-        resizeScreen();
+        resizeCanvas();
         // set which grid coordinate is being clicked
         getGridPositions();
     }
@@ -345,7 +387,6 @@ canvas.addEventListener("contextmenu", function (evt) {
             item.y == foregroundY);
         if (indexOfExisting == -1) {
             ff.push({ x: foregroundX, y: foregroundY });
-            console.log("added", foregroundX, foregroundY)
         } else {
             ff.splice(indexOfExisting, 1);
         }
@@ -353,53 +394,18 @@ canvas.addEventListener("contextmenu", function (evt) {
         // if clicking in the padding, shrink the grid and remove stitches exiting the grid
     } else {
         if (pixelX >= canvas.width - padding) {
-            width--;
-            backgroundWidth--;
-            for (const fill of ff) {
-                if (fill.x >= backgroundWidth) {
-                    ff.splice(ff.indexOf(fill), 1)
-                }
-            }
+            canvasWidthInput.value--;
         }
         if (pixelY >= canvas.height - padding) {
-            height--;
-            backgroundHeight--;
-            for (const stitch of stitches) {
-                stitch.cullY();
-            }
-            for (const fill of ff) {
-                if (fill.y >= backgroundHeight) {
-                    ff.splice(ff.indexOf(fill), 1)
-                }
-            }
+            canvasHeightInput.value--;
         }
         if (pixelX <= padding) {
-            width--;
-            backgroundWidth--;
-            for (const stitch of stitches) {
-                stitch.pullX();
-            }
-            for (const fill of ff) {
-                fill.x--;
-                if (fill.x <= 1) {
-                    ff.splice(ff.indexOf(fill), 1)
-                }
-            }
+            canvasWidthInput.value--
         }
         if (pixelY <= padding) {
-            height--;
-            backgroundHeight--;
-            for (const stitch of stitches) {
-                stitch.pullY();
-            }
-            for (const fill of ff) {
-                fill.y--;
-                if (fill.y <= 1) {
-                    ff.splice(ff.indexOf(fill), 1)
-                }
-            }
+            canvasHeightInput.value--
         }
-        resizeScreen();
+        resizeCanvas();
         // set which grid coordinate is being clicked
         getGridPositions();
     }
@@ -428,9 +434,6 @@ addEventListener("keydown", (evt) => {
     }
     frame();
 })
-
-foregroundColorPicker.addEventListener("change", frame);
-backgroundColorPicker.addEventListener("change", frame);
 
 // Utility functions
 function pixelToGrid(pixelX, onBackground = false) {
