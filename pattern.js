@@ -99,9 +99,6 @@ class Stitch {
 }
 
 class Pattern {
-    // padding rows/columns which are not part of the actual pattern
-    static padding = 0;
-
     constructor(height, width, stitches) {
         this.rowsNumA = height;
         this.rowsNumB = height - 1;
@@ -122,13 +119,13 @@ class Pattern {
         // fill rowsA, rowsB, columnsA, columnsB based on this.stitches
         var currStitchIndex = 0;
         
-        var emptyRowLen = this.columnsNumA - Pattern.padding * 2;
+        var emptyRowLen = this.columnsNumA;
         var emptyRowA = Pattern.getEmptyRow(emptyRowLen, true);
         var emptyRowB = Pattern.getEmptyRow(emptyRowLen - 1, false);
 
         if (this.stitches.length == 0) {
             // fill with default stitches
-            for (let i = this.rowsNumB - Pattern.padding - 1; i > Pattern.padding; i--) {
+            for (let i = this.rowsNumB - 1; i > 0; i--) {
                 this.rowsA.push(emptyRowA);
                 this.rowsB.push(emptyRowB);
             }
@@ -137,7 +134,7 @@ class Pattern {
         }
 
         var currStitch = this.stitches[currStitchIndex];
-        for (let i = this.rowsNumA - Pattern.padding - 1; i > Pattern.padding; i--) {
+        for (let i = this.rowsNumA - 1; i > 0; i--) {
             if (i > currStitch.y2) {
                 this.rowsA.push(emptyRowA);
             } else {
@@ -155,7 +152,7 @@ class Pattern {
                         break;
                     }
                     // fill in any gaps with default stitches
-                    var gapSize = currStitch.x1 - lastX - 1 - Pattern.padding;
+                    var gapSize = currStitch.x1 - lastX - 1;
 
                     for (let j = 0; j < gapSize; j++) {
                         row.push(Stitch.get_default_A_stitch());
@@ -174,7 +171,8 @@ class Pattern {
         currStitchIndex = 0;
         currStitch = this.stitches[currStitchIndex];
 
-        for (let i = this.rowsNumB - Pattern.padding - 1; i > Pattern.padding; i--) {
+        // todo: refactor to reduce code duplication with above loop
+        for (let i = this.rowsNumB - 1; i > 0; i--) {
             if (i > currStitch.y2) {
                 this.rowsB.push(emptyRowB);
             } else {
@@ -200,7 +198,7 @@ class Pattern {
                 }
 
                 // fill in any remaining spaces in the row with default stitches
-                for (let j = row.length; j < this.columnsNumB - Pattern.padding; j++) {
+                for (let j = row.length; j < this.columnsNumB; j++) {
                     row.push(Stitch.get_default_B_stitch());
                 }
                 this.rowsB.push(row);
