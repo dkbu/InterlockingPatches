@@ -59,3 +59,8 @@ function onExportClick(event) {
         document.body.removeChild(elem);
     }
 }
+function resetColors() {
+    foregroundColorPicker.value = "#000000";
+    backgroundColorPicker.value = "#c1a485";
+    frame();
+}

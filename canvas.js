@@ -38,6 +38,7 @@ resizeScreen();
 
 // Variable Calculation Functions
 function resizeScreen() {
+    
     // determine which dimension will decide the screen width
     // Math.floor may not be strictly necessary, but it mitigates anti-aliasing
     const verticalMaxGridMultiplier = Math.floor((window.screen.height * 0.8 - 2 * padding) / height);
@@ -62,11 +63,6 @@ function resizeScreen() {
     circleRadius = lineWidth / 2;
     thinWidth = lineWidth / 3;
     thinRadius = thinWidth / 2;
-    
-    // verify that each stitch has enough space to clearly show every stitch
-    if (thinRadius < 1) {
-        alert("Something went wrong: stitches are too small!\nTry using a smaller pattern or a larger screen.");
-    }
     frame();
 }
 
@@ -133,7 +129,8 @@ function frame() {
     for (const f of ff) { // for each ff,
         // move to above the covered grid point
         ctx.moveTo(gridToPixel(f.x), gridToPixel(f.y) - gridMultiplier / 2);
-        // and stroke to below it
+
+        // stroke to below the covered grid point
         ctx.lineTo(gridToPixel(f.x), gridToPixel(f.y) + gridMultiplier / 2);
     }
     ctx.stroke();
@@ -153,6 +150,7 @@ function frame() {
     ctx.fillStyle = highlightColor;
     ctx.strokeStyle = highlightColor;
     ctx.beginPath();
+
     // draw the angle that would be snapped to, if theres currently a start point for a stitch
     if (heldPoint.active) {
         // start at the start point, draw the rounding-off circle, line to the snapped-to point,
@@ -191,65 +189,104 @@ canvas.addEventListener("click", function (evt) {
     // if clicking inside the pattern (not the padding), edit the pattern
     if (foregroundX == clamp(foregroundX, 0, width - 1) && foregroundY == clamp(foregroundY, 0, height - 1)) {
         if (heldPoint.active) { // place a stitch if there's already a held point
+
             // delete the held point if clicking in the same spot
             if (heldPoint.x == foregroundX && heldPoint.y == foregroundY) {
                 heldPoint.active = false;
+
                 // if not deleting, place/remove the stitch and remove/move the held point
-            } else {
-                let placing = {}; // will need x1, y1, x2, y2 in all cases
-                // if placing a horizontal stitch,
-                if (heldPoint.y == foregroundY) {
-                    // put the leftmost point first
-                    if (heldPoint.x < foregroundX) {
-                        placing.x1 = heldPoint.x;
-                        placing.y1 = heldPoint.y;
-                        placing.x2 = foregroundX;
-                        placing.y2 = foregroundY;
+            } else { 
+
+                // consolidate code for which point is x1/y1 and which is x2/y2
+                // the top point is first, or leftmost if both are equally high
+                function definePlacing(i, heldPointFirst) {
+                    let ret = {};
+                    if (heldPointFirst) {
+                        ret.x1 = heldPoint.x+xIncrement*i;
+                        ret.y1 = heldPoint.y+yIncrement*i;
+                        ret.x2 = heldPoint.x+xIncrement*(i+1);
+                        ret.y2 = heldPoint.y+yIncrement*(i+1);
                     } else {
-                        placing.x1 = foregroundX;
-                        placing.y1 = foregroundY;
-                        placing.x2 = heldPoint.x;
-                        placing.y2 = heldPoint.y;
+                        ret.x1 = heldPoint.x+xIncrement*(i+1);
+                        ret.y1 = heldPoint.y+yIncrement*(i+1);
+                        ret.x2 = heldPoint.x+xIncrement*i;
+                        ret.y2 = heldPoint.y+yIncrement*i;
                     }
-                    // if not placing a horizontal stitch,
-                } else {
-                    // put the uppermost point first
-                    if (heldPoint.y < foregroundY) {
-                        placing.x1 = heldPoint.x;
-                        placing.y1 = heldPoint.y;
-                        placing.x2 = foregroundX;
-                        placing.y2 = foregroundY;
-                    } else {
-                        placing.x1 = foregroundX;
-                        placing.y1 = foregroundY;
-                        placing.x2 = heldPoint.x;
-                        placing.y2 = heldPoint.y;
+                    return ret;
+                }
+                
+                // find out how many stitches make up the line drawn
+                // seperate the line into an x and y component and find the longer one
+                const xDelta = foregroundX - heldPoint.x;
+                const yDelta = foregroundY - heldPoint.y;
+                const greaterDistance = Math.max(Math.abs(xDelta), Math.abs(yDelta));
+
+                // find the greatest common factor between the x and y components. This will be the number of stitches drawn
+                let greatestFactor = 1;
+                let xIncrement = xDelta;
+                let yIncrement = yDelta;
+                for (let i = greaterDistance; i > greatestFactor; i--) {
+                    if (xDelta % i == 0 && yDelta % i == 0) {
+                        greatestFactor = i;
+                        xIncrement = xDelta / greatestFactor;
+                        yIncrement = yDelta / greatestFactor;
                     }
                 }
 
-                // toggle the stitch
-                // if the stitch already exists, find it
-                const indexOfExisting = stitches.findIndex(item =>
-                    item.x1 == placing.x1 &&
-                    item.y1 == placing.y1 &&
-                    item.x2 == placing.x2 &&
-                    item.y2 == placing.y2);
-                // if you didn't find it, add it
-                if (indexOfExisting == -1) {
-                    stitches.push(new Stitch(placing.x1, placing.y1, placing.x2, placing.y2));
-                    // if you did find it, remove it
-                } else {
-                    stitches = stitches.filter(item =>
-                        !(item.x1 == placing.x1 &&
-                            item.y1 == placing.y1 &&
-                            item.x2 == placing.x2 &&
-                            item.y2 == placing.y2));
+                // for each stitch in the line drawn, place (or remove) it
+                let placing;
+                for (let i = 0; i < greatestFactor; i++) {
+                    // if placing a horizontal stitch,
+                    if (yDelta == 0) {
+
+                        // put the leftmost point first
+                        // xDelta will be greater than zero when hovered x is greater than held x
+                        // higher x values are further right
+                        if (xDelta > 0) {
+                            placing = definePlacing(i, heldPointFirst = true);
+                        } else {
+                            placing = definePlacing(i, heldPointFirst = false);
+                        }
+
+                        // if not placing a horizontal stitch,
+                    } else {
+
+                        // put the uppermost point first
+                        // higher y values are further down
+                        if (yDelta>0) {
+                            placing = definePlacing(i, heldPointFirst = true);
+                        } else {
+                            placing = definePlacing(i, heldPointFirst = false);
+                        }
+                    }
+
+                    // toggle the stitch
+                    // if the stitch already exists, find it
+                    const indexOfExisting = stitches.findIndex(item =>
+                        item.x1 == placing.x1 &&
+                        item.y1 == placing.y1 &&
+                        item.x2 == placing.x2 &&
+                        item.y2 == placing.y2);
+
+                    // if you didn't find it, add it
+                    if (indexOfExisting == -1) {
+                        stitches.push(new Stitch(placing.x1, placing.y1, placing.x2, placing.y2));
+
+                        // if you did find it, remove it
+                    } else {
+                        stitches = stitches.filter(item =>
+                            !(item.x1 == placing.x1 &&
+                                item.y1 == placing.y1 &&
+                                item.x2 == placing.x2 &&
+                                item.y2 == placing.y2));
+                    }
                 }
 
                 // if ctrl is being held, move the held point to the new spot
                 if (evt.ctrlKey) {
                     heldPoint.x = foregroundX;
                     heldPoint.y = foregroundY;
+
                     // if ctrl isn't being held, remove the held point instead
                 } else {
                     heldPoint.active = false;
@@ -375,12 +412,16 @@ addEventListener("keydown", (evt) => {
             case "KeyZ":
                 if (stitches.length > 0) {
                     // take out the last-made stitch and log it, so it can be re-done later
-                    undone.push(stitches.pop());
+                    const popped = stitches.pop()
+                    // push to the other array if stitches wasn't empty
+                    if (popped) { undone.push(popped); }
+                    
                 }
                 break;
             case "KeyY":
                 if(undone.length > 0) {
-                    stitches.push(undone.pop());
+                    const popped = undone.pop()
+                    if (popped) { stitches.push(popped); }
                 }
                 break;
         }
