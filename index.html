@@ -7,7 +7,7 @@
           // Path to your CSS file, or empty "" if none:
           const CSS_FILE_PATH = "style.css"; 
           // Paths to your JS files, or empty [] if none:
-          const JS_FILE_PATHS = ["pattern.js", "canvas.js", "script.js"]; 
+          const JS_FILE_PATHS = ["pattern.js", "canvas.js", "export.js", "script.js"]; 
     
           function loadScript(src) {
             const script = document.createElement("script");
@@ -73,14 +73,13 @@
           <input type="file" id="load" name="load" accept=".pattern">
           
         </details>
-        
+        <input type="button" id="exportBtn" value="Export to Text"/>
+    
             <!-- ko-fi donation button -->
         <script type='text/javascript' src='https://storage.ko-fi.com/cdn/widget/Widget_2.js'></script><script type='text/javascript'>kofiwidget2.init('Support the devs on Ko-fi', '#72a4f2', 'I2I51S7I62');kofiwidget2.draw();</script> 
       </div>
     <div class="canvas_div" oncontextmenu="return false;"> <!--this prevents context menu in the canvas, but also in the area to the right of it-->
         <canvas id="designerCanvas" width="20" height="50"></canvas>
-        <input type="button" id="exportBtn" value="Export to Text"/>
-        <a href="" id="downloadLink"></a>
     </div>
 </div>
 </body>
