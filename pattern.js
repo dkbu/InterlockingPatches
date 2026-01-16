@@ -86,14 +86,16 @@ class Stitch {
     }
 
     cullX(width) {
-        if (this.x1 < 0 || this.x1 >= width - 1 || this.x2 < 0 || this.x2 >= width - 1) {
+        if (this.x1 < 0 || this.x1 >= width || this.x2 < 0 || this.x2 >= width) {
             this.shouldRemove = true;
+            return true;
         }
     }
 
     cullY(height) {
-        if (this.y1 < 0 || this.y1 >= height - 1 || this.y2 < 0 || this.y2 >= height - 1) {
+        if (this.y1 < 0 || this.y1 >= height || this.y2 < 0 || this.y2 >= height) {
             this.shouldRemove = true;
+            return true;
         }
     }
 }
