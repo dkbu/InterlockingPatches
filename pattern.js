@@ -21,6 +21,10 @@ class Stitch {
         return ret;
     }
 
+    static start_string() {
+        return "Ch3";
+    }
+
     is_horizontal() {
         return this.y1 == this.y2;
     }
@@ -112,9 +116,17 @@ class Pattern {
         this.stitches = stitches; // array of Stitch objects
     }
 
-    static getEmptyRow(row_num, is_a) {
+    static getEmptyRow(row_num, is_a, row_start=false) {
         const st = is_a ? Stitch.get_default_A_stitch() : Stitch.get_default_B_stitch();
-        return new Array(row_num).fill(st);
+        let ret;
+        if (row_start) {
+            ret = new Array(1).fill(Stitch.start_string());
+            ret = ret.concat(new Array(row_num - 1).fill(st));
+        }
+        else {
+            ret = new Array(row_num).fill(st);
+        }
+        return ret;
     }
 
     parse() {
@@ -122,8 +134,8 @@ class Pattern {
         var currStitchIndex = 0;
         
         var emptyRowLen = this.columnsNumA;
-        var emptyRowA = Pattern.getEmptyRow(emptyRowLen, true);
-        var emptyRowB = Pattern.getEmptyRow(emptyRowLen - 1, false);
+        var emptyRowA = Pattern.getEmptyRow(emptyRowLen, true, true);
+        var emptyRowB = Pattern.getEmptyRow(emptyRowLen - 1, false, true);
 
         if (this.stitches.length == 0) {
             // fill with default stitches
@@ -140,7 +152,7 @@ class Pattern {
             if (i > currStitch.y2) {
                 this.rowsA.push(emptyRowA);
             } else {
-                let row = Pattern.getEmptyRow(currStitch.x1, true);
+                let row = Pattern.getEmptyRow(currStitch.x1, true, true);
 
                 while (i == currStitch.y2) {
                     row.push(currStitch.get_A_stitch());
@@ -178,7 +190,7 @@ class Pattern {
             if (i > currStitch.y2) {
                 this.rowsB.push(emptyRowB);
             } else {
-                let row = Pattern.getEmptyRow(currStitch.x1, false);
+                let row = Pattern.getEmptyRow(currStitch.x1, false, true);
                 while (i == currStitch.y2) {
                     row.push(currStitch.get_B_stitch());
                     var lastX = currStitch.x1;
