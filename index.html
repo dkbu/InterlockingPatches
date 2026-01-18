@@ -8,12 +8,25 @@
           const CSS_FILE_PATH = "style.css"; 
           // Paths to your JS files, or empty [] if none:
           const JS_FILE_PATHS = ["pattern.js", "canvas.js", "export.js", "script.js"]; 
-    
           function loadScript(src) {
             const script = document.createElement("script");
             script.src = src + "?nocache=" + new Date().getTime();
               script.async = true;
             document.head.appendChild(script);
+          }
+          function loadOptionalScript(src) {
+            // Check if file exists before trying to load it
+            fetch(src, { method: 'HEAD' })
+              .then(response => {
+                if (response.ok) {
+                  loadScript(src);
+                }
+              })
+              .catch(() => {
+                // File doesn't exist, silently ignore
+              }).finally(() => {
+                for (const PATH of JS_FILE_PATHS) loadScript(PATH);
+              });
           }
           function loadCSS(href) {
             const link = document.createElement("link");
@@ -22,7 +35,10 @@
             document.head.appendChild(link);
           }
           if (CSS_FILE_PATH) loadCSS(CSS_FILE_PATH);
-          for (const PATH of JS_FILE_PATHS) loadScript(PATH);
+          
+          // Try to load optional localdev.js without generating warnings
+          loadOptionalScript("localdev.js");
+
       });
     </script>
     <meta charset="UTF-8">
@@ -73,7 +89,7 @@
           <input type="file" id="load" name="load" accept=".pattern">
           
         </details>
-        <input hidden type="button" id="exportBtn" value="Export to Text"/>
+        <input type="button" id="exportBtn" value="Export to Text" style="display:none;" />
     
             <!-- ko-fi donation button -->
         <script type='text/javascript' src='https://storage.ko-fi.com/cdn/widget/Widget_2.js'></script><script type='text/javascript'>kofiwidget2.init('Support the devs on Ko-fi', '#72a4f2', 'I2I51S7I62');kofiwidget2.draw();</script> 

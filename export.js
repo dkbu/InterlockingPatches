@@ -95,9 +95,18 @@ function clearCanvas() {
 
 // Initialize all functionality
 function initializeAllFunctionality() {
-    btnExport = document.getElementById("exportBtn");
-    btnExport.addEventListener('click', onExportClick);
-    
     loadCanvas = document.getElementById("load");
     loadCanvas.addEventListener("change", readLoaded);
+
+    // Export button only in local dev, marked by the existence of 
+    // localdev.js which sets isLocalDev to true
+    try {
+        if (isLocalDev) {
+            btnExport = document.getElementById("exportBtn");
+            btnExport.style.display = "inline";
+            btnExport.addEventListener('click', onExportClick);
+        }
+    } catch (e) {
+        console.log("Production environment detected, hiding export button.");
+    }
 }
