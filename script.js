@@ -33,34 +33,17 @@ DONE:
 // Import modules
 // Imports getStitches, getDimensions from canvas.js
 // Imports createPattern from pattern.js
+// Imports onExportClick, saveCanvas, readLoaded, clearCanvas, initializeAllFunctionality from export.js
 
-// Export button functionality
-const btnExport = document.getElementById("exportBtn");
-btnExport.addEventListener('click', onExportClick);
-
-function onExportClick(event) {
-    filename = "pattern.txt";
-
-    const { width, height } = getDimensions();
-    const stitches = getStitches();
-    let pattern = createPattern(stitches, height, width);
-    let output = pattern.toString();
-
-    const blob = new Blob([output], {type: 'text'});
-    if(window.navigator.msSaveOrOpenBlob) {
-        window.navigator.msSaveBlob(blob, filename);
-    }
-    else{
-        const elem = window.document.createElement('a');
-        elem.href = window.URL.createObjectURL(blob);
-        elem.download = filename;        
-        document.body.appendChild(elem);
-        elem.click();        
-        document.body.removeChild(elem);
-    }
-}
 function resetColors() {
     foregroundColorPicker.value = "#000000";
     backgroundColorPicker.value = "#c1a485";
     frame();
+}
+
+// Initialize all functionality when the page is ready
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initializeAllFunctionality);
+} else {
+    initializeAllFunctionality();
 }

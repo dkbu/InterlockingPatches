@@ -13,7 +13,8 @@ class Stitch {
     }
 
     static compare(a, b) {
-        var ret = a.y1 - b.y1;
+        // sort by y1 ascending, then x1 ascending
+        var ret = b.y2 - a.y2;
         if (ret == 0) {
             ret = a.x1 - b.x1;
         }
@@ -33,7 +34,7 @@ class Stitch {
     }
 
     get_A_stitch() {
-        if (this.is_horizontal()) {
+        if (this.is_vertical()) {
             return "F";
         } else {
             return "B";
@@ -45,7 +46,7 @@ class Stitch {
     }
 
     get_B_stitch() {
-        if (this.is_vertical()) {
+        if (this.is_horizontal()) {
             return "B";
         } else {
             return "F";
@@ -85,14 +86,16 @@ class Stitch {
     }
 
     cullX(width) {
-        if (this.x1 < 0 || this.x1 >= width - 1 || this.x2 < 0 || this.x2 >= width - 1) {
+        if (this.x1 < 0 || this.x1 >= width || this.x2 < 0 || this.x2 >= width) {
             this.shouldRemove = true;
+            return true;
         }
     }
 
     cullY(height) {
-        if (this.y1 < 0 || this.y1 >= height - 1 || this.y2 < 0 || this.y2 >= height - 1) {
+        if (this.y1 < 0 || this.y1 >= height || this.y2 < 0 || this.y2 >= height) {
             this.shouldRemove = true;
+            return true;
         }
     }
 }
@@ -109,29 +112,37 @@ class Pattern {
         this.stitches = stitches; // array of Stitch objects
     }
 
+    static getEmptyRow(row_num, is_a) {
+        const st = is_a ? Stitch.get_default_A_stitch() : Stitch.get_default_B_stitch();
+        return new Array(row_num).fill(st);
+    }
+
     parse() {
         // fill rowsA, rowsB, columnsA, columnsB based on this.stitches
         var currStitchIndex = 0;
+        
+        var emptyRowLen = this.columnsNumA;
+        var emptyRowA = Pattern.getEmptyRow(emptyRowLen, true);
+        var emptyRowB = Pattern.getEmptyRow(emptyRowLen - 1, false);
 
         if (this.stitches.length == 0) {
             // fill with default stitches
-            for (let i = 0; i < this.rowsNumA; i++) {
-                this.rowsA.push(new Array(this.columnsNumA).fill(Stitch.get_default_A_stitch()));
+            for (let i = this.rowsNumB - 1; i > 0; i--) {
+                this.rowsA.push(emptyRowA);
+                this.rowsB.push(emptyRowB);
             }
-            for (let i = 0; i < this.rowsNumB; i++) {
-                this.rowsB.push(new Array(this.columnsNumB).fill(Stitch.get_default_B_stitch()));
-            }
+            this.rowsA.push(emptyRowA);
             return;
         }
 
         var currStitch = this.stitches[currStitchIndex];
-        for (let i = 0; i < this.rowsNumA; i++) {
-            if (i < currStitch.y1) {
-                this.rowsA.push(new Array(this.columnsNumA).fill(Stitch.get_default_A_stitch()));
+        for (let i = this.rowsNumA - 1; i > 0; i--) {
+            if (i > currStitch.y2) {
+                this.rowsA.push(emptyRowA);
             } else {
-                let row = new Array(currStitch.x1 - 1).fill(Stitch.get_default_A_stitch());
+                let row = Pattern.getEmptyRow(currStitch.x1, true);
 
-                while (i == currStitch.y1) {
+                while (i == currStitch.y2) {
                     row.push(currStitch.get_A_stitch());
                     var lastX = currStitch.x1;
                     currStitchIndex++;
@@ -139,6 +150,9 @@ class Pattern {
                         break;
                     }
                     currStitch = this.stitches[currStitchIndex];
+                    if (currStitch.y2 != i) {
+                        break;
+                    }
                     // fill in any gaps with default stitches
                     var gapSize = currStitch.x1 - lastX - 1;
 
@@ -159,12 +173,13 @@ class Pattern {
         currStitchIndex = 0;
         currStitch = this.stitches[currStitchIndex];
 
-        for (let i = 0; i < this.rowsNumB; i++) {
-            if (i < currStitch.y1) {
-                this.rowsB.push(new Array(this.columnsNumB).fill(Stitch.get_default_B_stitch()));
+        // todo: refactor to reduce code duplication with above loop
+        for (let i = this.rowsNumB - 1; i > 0; i--) {
+            if (i > currStitch.y2) {
+                this.rowsB.push(emptyRowB);
             } else {
-                let row = new Array(currStitch.x1 - 1).fill(Stitch.get_default_B_stitch());
-                while (i == currStitch.y1) {
+                let row = Pattern.getEmptyRow(currStitch.x1, false);
+                while (i == currStitch.y2) {
                     row.push(currStitch.get_B_stitch());
                     var lastX = currStitch.x1;
 
@@ -173,6 +188,10 @@ class Pattern {
                         break;
                     }
                     currStitch = this.stitches[currStitchIndex];
+                    if (currStitch.y2 != i) {
+                        break;
+                    }
+
                     // fill in any gaps with default stitches
                     var gapSize = currStitch.x1 - lastX - 1;
                     for (let j = 0; j < gapSize; j++) {
@@ -200,9 +219,9 @@ class Pattern {
             } else {
                 // append to new_row
                 if (currentStitchCount > 1) {
-                    new_row += currentStitchVal + currentStitchCount.toString();
+                    new_row += currentStitchVal + currentStitchCount.toString() + " ";
                 } else {
-                    new_row += currentStitchVal;
+                    new_row += currentStitchVal + " ";
                 }
                 // reset counters
                 currentStitchVal = row[i];
@@ -235,15 +254,16 @@ class Pattern {
 
     toString() {
         var output = "";
-        for (let i = 0; i < this.columnsNumB; i++) {
+        var len = this.rowsB.length;
+        for (let i = 0; i < len; i++) {
             output += (i + 1).toString() + "A: ";
             output += this.rowsA[i] + "\n";
             output += (i + 1).toString() + "B: ";
             output += this.rowsB[i] + "\n";
         }
 
-        output += (this.columnsNumB + 1).toString() + "A: ";
-        output += this.rowsA[this.columnsNumB] + "\n";
+        output += (len + 1).toString() + "A: ";
+        output += this.rowsA[len] + "\n";
 
         return output;
     }

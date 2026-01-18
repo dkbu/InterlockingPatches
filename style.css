@@ -29,13 +29,17 @@ body {
     grid-column: 2;
 }
 
-.sidebar > * {
+.space_children > * {
     margin-top: 10px;
 }
 
 .canvas_div {
     grid-row: 1;
     grid-column: 1;
+}
+
+.num_input {
+    width: 3.5em;
 }
 
 /* thin (mobile) devices have a vertical layout rather than horizontal */
