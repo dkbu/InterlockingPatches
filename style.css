@@ -42,10 +42,6 @@ body {
     width: 3.5em;
 }
 
-.red_background {
-    background-color: rgb(255, 83, 83);
-}
-
 /* thin (mobile) devices have a vertical layout rather than horizontal */
 @media (max-width: 1000px) {
     .container {
