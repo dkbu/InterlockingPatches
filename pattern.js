@@ -21,6 +21,10 @@ class Stitch {
         return ret;
     }
 
+    static start_string() {
+        return "Ch3";
+    }
+
     is_horizontal() {
         return this.y1 == this.y2;
     }
@@ -114,7 +118,11 @@ class Pattern {
 
     static getEmptyRow(row_num, is_a) {
         const st = is_a ? Stitch.get_default_A_stitch() : Stitch.get_default_B_stitch();
-        return new Array(row_num).fill(st);
+    
+        let ret = new Array(1).fill(Stitch.start_string());
+        ret = ret.concat(new Array(row_num - 1).fill(st));
+        
+        return ret;
     }
 
     parse() {
