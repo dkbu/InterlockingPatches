@@ -13,12 +13,36 @@ class Stitch {
     }
 
     static compare(a, b) {
-        // sort by y1 ascending, then x1 ascending
+        // sort by y2 ascending, then x1 ascending
         var ret = b.y2 - a.y2;
         if (ret == 0) {
-            ret = a.x1 - b.x1;
+            if (b.y2 % 2 == 0) {
+                // even rows go right to left
+                ret = b.x1 - a.x1;
+            } else {
+                // odd rows go left to right
+                ret = a.x1 - b.x1;
+            }
         }
         return ret;
+    }
+
+    get_starting_x(columnNum) {
+        if (this.y2 % 2 == 0) {
+            return columnNum - this.x2;
+        } else {
+            return this.x1;
+        }
+    }
+
+    static get_gap(stitch1, stitch2, columnNum) {
+        
+        if (this.y2 % 2 == 0) {
+            return columnNum - Math.abs(stitch2.get_starting_x(columnNum) - stitch1.get_starting_x(columnNum)) + 1;
+        }
+        else {
+            return Math.abs(stitch2.get_starting_x() - stitch1.get_starting_x()) - 1;
+        }
     }
 
     static start_string() {
@@ -118,17 +142,15 @@ class Pattern {
 
     static getEmptyRow(row_num, is_a) {
         const st = is_a ? Stitch.get_default_A_stitch() : Stitch.get_default_B_stitch();
-    
+
         let ret = new Array(1).fill(Stitch.start_string());
         ret = ret.concat(new Array(row_num - 1).fill(st));
-        
+
         return ret;
     }
 
     parse() {
         // fill rowsA, rowsB, columnsA, columnsB based on this.stitches
-        var currStitchIndex = 0;
-        
         var emptyRowLen = this.columnsNumA;
         var emptyRowA = Pattern.getEmptyRow(emptyRowLen, true);
         var emptyRowB = Pattern.getEmptyRow(emptyRowLen - 1, false);
@@ -143,77 +165,74 @@ class Pattern {
             return;
         }
 
-        var currStitch = this.stitches[currStitchIndex];
-        for (let i = this.rowsNumA - 1; i > 0; i--) {
-            if (i > currStitch.y2) {
-                this.rowsA.push(emptyRowA);
-            } else {
-                let row = Pattern.getEmptyRow(currStitch.x1, true);
+        let i = this.rowsNumA - 1;
+        let currBindex = 0;
+        let [ row, currAindex ] =
+            this.populateStitchRow(i, 0, true);
 
-                while (i == currStitch.y2) {
-                    row.push(currStitch.get_A_stitch());
-                    var lastX = currStitch.x1;
-                    currStitchIndex++;
-                    if (currStitchIndex >= this.stitches.length) {
-                        break;
-                    }
-                    currStitch = this.stitches[currStitchIndex];
-                    if (currStitch.y2 != i) {
-                        break;
-                    }
-                    // fill in any gaps with default stitches
-                    var gapSize = currStitch.x1 - lastX - 1;
+        this.rowsA.push(row);
+        
+        for (i = this.rowsNumB - 1; i > 0; i--) {
+            [ row, currBindex ] =
+                this.populateStitchRow(i, currBindex, false);
 
-                    for (let j = 0; j < gapSize; j++) {
-                        row.push(Stitch.get_default_A_stitch());
-                    }
+            this.rowsB.push(row);
+
+            [ row, currAindex ] =
+                this.populateStitchRow(i, currAindex, true);
+
+            this.rowsA.push(row);
+        }
+
+        
+    }
+
+    populateStitchRow(i, stitchIndex, is_a) {
+        let row;
+        
+        let defaultStitch = is_a ? Stitch.get_default_A_stitch() : Stitch.get_default_B_stitch();
+        let columnNum = is_a ? this.columnsNumA : this.columnsNumB;
+        let currStitchIndex = stitchIndex;
+        let currStitch = this.stitches[currStitchIndex];
+        let emptyRow = is_a ? Pattern.getEmptyRow(columnNum, true) : Pattern.getEmptyRow(columnNum, false);
+
+        if (currStitchIndex >= this.stitches.length) {
+            row = emptyRow;
+            return [ row, currStitchIndex ];
+        }
+        if (i > currStitch.y2) {
+            row = emptyRow;
+            ++currStitchIndex;
+        } else {
+            row = Pattern.getEmptyRow(currStitch.get_starting_x(columnNum), true);
+
+            while (i == currStitch.y2) {
+                let curr = is_a ? currStitch.get_A_stitch() : currStitch.get_B_stitch();
+                row.push(curr);
+                var lastStitch = currStitch;
+                ++currStitchIndex;
+                if (currStitchIndex >= this.stitches.length) {
+                    break;
                 }
-
-                // fill in any remaining spaces in the row with default stitches
-                for (let j = row.length; j < this.columnsNumA; j++) {
-                    row.push(Stitch.get_default_A_stitch());
+                currStitch = this.stitches[currStitchIndex];
+                if (currStitch.y2 != i) {
+                    break;
                 }
+                // fill in any gaps with default stitches
+                var gapSize = Stitch.get_gap(lastStitch, currStitch, columnNum);
 
-                this.rowsA.push(row);
+                for (let j = 0; j < gapSize; j++) {
+                    row.push(defaultStitch);
+                }
+            }
+
+            // fill in any remaining spaces in the row with default stitches
+            for (let j = row.length; j < columnNum; j++) {
+                row.push(defaultStitch);
             }
         }
 
-        currStitchIndex = 0;
-        currStitch = this.stitches[currStitchIndex];
-
-        // todo: refactor to reduce code duplication with above loop
-        for (let i = this.rowsNumB - 1; i > 0; i--) {
-            if (i > currStitch.y2) {
-                this.rowsB.push(emptyRowB);
-            } else {
-                let row = Pattern.getEmptyRow(currStitch.x1, false);
-                while (i == currStitch.y2) {
-                    row.push(currStitch.get_B_stitch());
-                    var lastX = currStitch.x1;
-
-                    currStitchIndex++;
-                    if (currStitchIndex >= this.stitches.length) {
-                        break;
-                    }
-                    currStitch = this.stitches[currStitchIndex];
-                    if (currStitch.y2 != i) {
-                        break;
-                    }
-
-                    // fill in any gaps with default stitches
-                    var gapSize = currStitch.x1 - lastX - 1;
-                    for (let j = 0; j < gapSize; j++) {
-                        row.push(Stitch.get_default_B_stitch());
-                    }
-                }
-
-                // fill in any remaining spaces in the row with default stitches
-                for (let j = row.length; j < this.columnsNumB; j++) {
-                    row.push(Stitch.get_default_B_stitch());
-                }
-                this.rowsB.push(row);
-            }
-        }
+        return [ row, currStitchIndex ];
     }
 
     compress_row(row) {
