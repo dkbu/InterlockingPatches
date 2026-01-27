@@ -16,33 +16,42 @@ class Stitch {
         // sort by y2 ascending, then x1 ascending
         var ret = b.y2 - a.y2;
         if (ret == 0) {
-            if (b.y2 % 2 == 0) {
+            if (b.y1 % 2 == 0) {
                 // even rows go right to left
                 ret = b.x1 - a.x1;
             } else {
                 // odd rows go left to right
-                ret = a.x1 - b.x1;
+                ret = a.x2 - b.x2;
             }
         }
         return ret;
     }
 
+    is_even_row() {
+        return this.y1 % 2 == 0;
+    }
+
     get_starting_x(columnNum) {
-        if (this.y2 % 2 == 0) {
-            return columnNum - this.x2;
+        if (this.is_even_row()) {
+            return columnNum - this.x2 - 1;
         } else {
             return this.x1;
         }
     }
 
+    get_ending_x(columnNum) {
+        if (this.is_even_row()) {
+            return columnNum - this.x1 - 1;
+        } else {
+            return this.x2;
+        }
+    }
+
     static get_gap(stitch1, stitch2, columnNum) {
-        
-        if (this.y2 % 2 == 0) {
-            return columnNum - Math.abs(stitch2.get_starting_x(columnNum) - stitch1.get_starting_x(columnNum)) + 1;
+        if (stitch1.y2 != stitch2.y2) {
+            throw new Error("Stitches are not on the same row");
         }
-        else {
-            return Math.abs(stitch2.get_starting_x() - stitch1.get_starting_x()) - 1;
-        }
+        return Math.abs(stitch2.get_starting_x(columnNum) - stitch1.get_ending_x(columnNum));
     }
 
     static start_string() {
@@ -193,20 +202,20 @@ class Pattern {
         let defaultStitch = is_a ? Stitch.get_default_A_stitch() : Stitch.get_default_B_stitch();
         let columnNum = is_a ? this.columnsNumA : this.columnsNumB;
         let currStitchIndex = stitchIndex;
-        let currStitch = this.stitches[currStitchIndex];
-        let emptyRow = is_a ? Pattern.getEmptyRow(columnNum, true) : Pattern.getEmptyRow(columnNum, false);
-
         if (currStitchIndex >= this.stitches.length) {
             row = emptyRow;
             return [ row, currStitchIndex ];
         }
-        if (i > currStitch.y2) {
+        let currStitch = this.stitches[currStitchIndex];
+        let emptyRow = is_a ? Pattern.getEmptyRow(columnNum, true) : Pattern.getEmptyRow(columnNum, false);
+
+        if (i > currStitch.y1) {
             row = emptyRow;
             ++currStitchIndex;
         } else {
             row = Pattern.getEmptyRow(currStitch.get_starting_x(columnNum), true);
 
-            while (i == currStitch.y2) {
+            while (i == currStitch.y1) {
                 let curr = is_a ? currStitch.get_A_stitch() : currStitch.get_B_stitch();
                 row.push(curr);
                 var lastStitch = currStitch;
@@ -215,7 +224,7 @@ class Pattern {
                     break;
                 }
                 currStitch = this.stitches[currStitchIndex];
-                if (currStitch.y2 != i) {
+                if (currStitch.y1 != i) {
                     break;
                 }
                 // fill in any gaps with default stitches
