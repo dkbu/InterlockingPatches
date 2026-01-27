@@ -70,6 +70,10 @@ class Stitch {
         return !this.is_horizontal() && !this.is_vertical();
     }
 
+    static get_final_A_stitch() {
+        return "DC"
+    }
+
     get_A_stitch() {
         if (this.is_vertical()) {
             return "F";
@@ -151,9 +155,14 @@ class Pattern {
 
     static getEmptyRow(row_num, is_a) {
         const st = is_a ? Stitch.get_default_A_stitch() : Stitch.get_default_B_stitch();
+        const empty_num = is_a ? row_num - 2 : row_num - 1;
 
         let ret = new Array(1).fill(Stitch.start_string());
-        ret = ret.concat(new Array(row_num - 1).fill(st));
+        ret = ret.concat(new Array(empty_num).fill(st));
+
+        if (is_a) {
+            ret.push(Stitch.get_final_A_stitch());
+        }
 
         return ret;
     }
@@ -207,13 +216,13 @@ class Pattern {
             return [ row, currStitchIndex ];
         }
         let currStitch = this.stitches[currStitchIndex];
-        let emptyRow = is_a ? Pattern.getEmptyRow(columnNum, true) : Pattern.getEmptyRow(columnNum, false);
+        let emptyRow = Pattern.getEmptyRow(columnNum, is_a);
 
         if (i > currStitch.y1) {
             row = emptyRow;
             ++currStitchIndex;
         } else {
-            row = Pattern.getEmptyRow(currStitch.get_starting_x(columnNum), true);
+            row = Pattern.getEmptyRow(currStitch.get_starting_x(columnNum), is_a);
 
             while (i == currStitch.y1) {
                 let curr = is_a ? currStitch.get_A_stitch() : currStitch.get_B_stitch();
@@ -293,14 +302,13 @@ class Pattern {
         var len = this.rowsB.length;
         for (let i = 0; i < len; i++) {
             output += (i + 1).toString() + "A: ";
-            output += this.rowsA[i] + "\n";
+            output += this.rowsA[i] + "\r\n";
             output += (i + 1).toString() + "B: ";
-            output += this.rowsB[i] + "\n";
+            output += this.rowsB[i] + "\r\n";
         }
 
         output += (len + 1).toString() + "A: ";
-        output += this.rowsA[len] + "\n";
-
+        output += this.rowsA[len] + "\r\n";
         return output;
     }
 }
