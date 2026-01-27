@@ -1,0 +1,9 @@
+1A: Ch3 B4 DC
+1B: Ch3 F2 B F
+2A: Ch3 B F B2 DC
+2B: Ch3 F B F2
+3A: Ch3 B F B2 DC
+3B: Ch3 B F3
+4A: Ch3 3B F DC
+4B: Ch3 4F
+5A: Ch3 B4 DC

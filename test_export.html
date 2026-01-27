@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Pattern Export Test</title>
+</head>
+<body>
+    <div>
+        <h2>Pattern Export Test</h2>
+        <button id="runTest">Run Test: Load zigzag.pattern and compare export to test_pattern.txt</button>
+        <div id="testResults"></div>
+        <div>
+            <h3>Loaded Pattern Export:</h3>
+            <pre id="actualOutput"></pre>
+        </div>
+        <div>
+            <h3>Expected Output:</h3>
+            <pre id="expectedOutput"></pre>
+        </div>
+    </div>
+
+    <script src="pattern.js"></script>
+    <script>
+        async function loadFile(filePath) {
+            const response = await fetch(filePath);
+            return await response.text();
+        }
+
+        async function runPatternTest() {
+            try {
+                // Load the zigzag.pattern file
+                const patternData = await loadFile('./test/zigzag.pattern');
+                const parsedPattern = JSON.parse(patternData);
+
+                // Recreate the stitches from the loaded data
+                const stitches = [];
+                for (const stitchData of parsedPattern.stitches) {
+                    stitches.push(new Stitch(stitchData.x1, stitchData.y1, stitchData.x2, stitchData.y2));
+                }
+
+                // Create the pattern using the loaded dimensions
+                const width = parseInt(parsedPattern.width);
+                const height = parseInt(parsedPattern.height);
+                const pattern = createPattern(stitches, height, width);
+                const actualOutput = pattern.toString();
+
+                // Load the expected output
+                const expectedOutput = await loadFile('./test/test_pattern.txt');
+
+                // Display both outputs
+                document.getElementById('actualOutput').textContent = actualOutput;
+                document.getElementById('expectedOutput').textContent = expectedOutput;
+
+                // Compare the outputs
+                const actualTrimmed = actualOutput.trim();
+                const expectedTrimmed = expectedOutput.trim();
+                
+                if (actualTrimmed === expectedTrimmed) {
+                    document.getElementById('testResults').innerHTML = 
+                        '<div style="color: green; font-weight: bold; font-size: 18px;">✓ TEST PASSED: Outputs match exactly!</div>';
+                } else {
+                    document.getElementById('testResults').innerHTML = 
+                        '<div style="color: red; font-weight: bold; font-size: 18px;">✗ TEST FAILED: Outputs do not match</div>';
+                    
+                    // Show line-by-line comparison
+                    const actualLines = actualTrimmed.split('\n');
+                    const expectedLines = expectedTrimmed.split('\n');
+                    let comparisonHtml = '<div style="margin-top: 10px;"><h4>Line-by-line comparison:</h4>';
+                    
+                    const maxLines = Math.max(actualLines.length, expectedLines.length);
+                    for (let i = 0; i < maxLines; i++) {
+                        const actualLine = actualLines[i] || '';
+                        const expectedLine = expectedLines[i] || '';
+                        const matches = actualLine === expectedLine;
+                        
+                        comparisonHtml += `<div style="margin: 2px 0; ${matches ? '' : 'background-color: #ffcccc;'}">`;
+                        comparisonHtml += `Line ${i + 1}: `;
+                        if (matches) {
+                            comparisonHtml += `<span style="color: green;">✓</span> "${actualLine}"`;
+                        } else {
+                            comparisonHtml += `<span style="color: red;">✗</span><br>`;
+                            comparisonHtml += `&nbsp;&nbsp;Actual:   "${actualLine}"<br>`;
+                            comparisonHtml += `&nbsp;&nbsp;Expected: "${expectedLine}"`;
+                        }
+                        comparisonHtml += '</div>';
+                    }
+                    comparisonHtml += '</div>';
+                    document.getElementById('testResults').innerHTML += comparisonHtml;
+                }
+
+            } catch (error) {
+                document.getElementById('testResults').innerHTML = 
+                    `<div style="color: red; font-weight: bold;">✗ TEST ERROR: ${error.message}</div>`;
+                console.error('Test error:', error);
+            }
+        }
+
+        document.getElementById('runTest').addEventListener('click', runPatternTest);
+    </script>
+</body>
+</html>
