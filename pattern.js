@@ -10,13 +10,14 @@ class Stitch {
         this.y1 = y1;
         this.x2 = x2;
         this.y2 = y2;
+        this.is_rtl = null; // to be set later based on row
     }
 
     static compare(a, b) {
         // sort by y2 ascending, then x1 ascending
         var ret = b.y2 - a.y2;
         if (ret == 0) {
-            if (b.is_even_row()) {
+            if (b.is_rtl) {
                 // even rows go right to left
                 ret = b.x1 - a.x1;
             } else {
@@ -27,12 +28,8 @@ class Stitch {
         return ret;
     }
 
-    is_even_row() {
-        return this.y2 % 2 == 0;
-    }
-
     get_starting_x(columnNum) {
-        if (this.is_even_row()) {
+        if (this.is_rtl) {
             return columnNum - this.x2 - 1;
         } else {
             return this.x1;
@@ -40,7 +37,7 @@ class Stitch {
     }
 
     get_ending_x(columnNum) {
-        if (this.is_even_row()) {
+        if (this.is_rtl) {
             return columnNum - this.x1 - 1;
         } else {
             return this.x2;
@@ -150,12 +147,15 @@ class Pattern {
         this.columnsNumA = width;
         this.columnsNumB = width - 1;
 
-        this.stitches = stitches; // array of Stitch objects
+        stitches.forEach(element => {
+            element.is_rtl = ((this.rowsNumA - element.y2) % 2 == 0);
+        }); // array of Stitch objects
+        this.stitches = [...stitches].sort(Stitch.compare);
     }
 
     static getEmptyRow(col_num, is_a, is_end = false) {
         const st = is_a ? Stitch.get_default_A_stitch() : Stitch.get_default_B_stitch();
-        const empty_num = is_a ? col_num - 2 : col_num - 1;
+        let empty_num = is_a ? col_num - 2 : col_num - 1;
         if (empty_num < 0) {
             return [];
         }
@@ -170,7 +170,6 @@ class Pattern {
                 ret.push(Stitch.get_default_A_stitch());
             }
         }
-
 
         return ret;
     }
@@ -332,8 +331,7 @@ class Pattern {
 
 // Pattern creation function
 function createPattern(stitches, height, width) {
-    const sortedStitches = [...stitches].sort(Stitch.compare);
-    const pattern = new Pattern(height, width, sortedStitches);
+    const pattern = new Pattern(height, width, stitches);
     pattern.parse();
     pattern.compress();
     return pattern;
