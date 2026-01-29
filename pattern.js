@@ -226,13 +226,18 @@ class Pattern {
 
         if (i > currStitch.y2) {
             row = emptyRow;
-            ++currStitchIndex;
         } else {
             row = Pattern.getEmptyRow(currStitch.get_starting_x(columnNum), is_a);
 
             while (i == currStitch.y2) {
                 let curr = is_a ? currStitch.get_A_stitch() : currStitch.get_B_stitch();
-                row.push(curr);
+                
+                if (row.length == 0) {
+                    row.push(Stitch.start_string());
+                }
+                else {
+                    row.push(curr);
+                }
                 var lastStitch = currStitch;
                 ++currStitchIndex;
                 if (currStitchIndex >= this.stitches.length) {
