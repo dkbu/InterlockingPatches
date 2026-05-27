@@ -3,15 +3,34 @@
 class Stitch {
     static nextId = 1;
 
-    // x1 is the leftmost x, y1 is the uppermost y
-    constructor(x1, y1, x2, y2) {
+    // x1 and y1 are the ones that decide the stitch's position in the pattern
+    constructor(x1, y1, domain) {
         this.id = Stitch.nextId++;
         this.x1 = x1;
         this.y1 = y1;
-        this.x2 = x2;
-        this.y2 = y2;
+        this.domain = domain
     }
 
+    static other_domain() {
+        if (this.domain = "F") {
+            return "B";
+        } else if (this.domain = "B") {
+            return "F";
+        }
+    }
+
+    is_identical(compared) {
+        if (
+            this.type == compared.type &&
+            this.domain == compared.domain &&
+            this.x1 == compared.x1 &&
+            this.y1 == compared.y1) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+    /*
     static compare(a, b) {
         // sort by y1 ascending, then x1 ascending
         var ret = b.y2 - a.y2;
@@ -56,6 +75,153 @@ class Stitch {
     static get_default_B_stitch() {
         return "F";
     }
+    */
+
+    pushX() {
+        this.x1++;
+    }
+
+    pushY() {
+        this.y1++;
+    }
+
+    pullX() {
+        this.x1--;
+    }
+
+    pullY() {
+        this.y1--;
+    }
+
+    cullX(width) {
+        if (this.x1 < 0 || this.x1 >= width) {
+            this.shouldRemove = true;
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    cullY(height) {
+        if (this.y1 < 0 || this.y1 >= height) {
+            this.shouldRemove = true;
+            return true;
+        } else {
+            return false;
+        }
+    }
+}
+
+class LongStitch extends Stitch {
+    constructor(x1, y1, x2, y2, domain){
+        super(x1, y1, domain);
+        this.x2 = x2;
+        this.y2 = y2;
+        this.type = "LongStitch"
+    }
+
+    static possibleStitches = [
+        {"deltaX": 2, "deltaY": 1, "isEven": true, "name": "pp←"},
+        {"deltaX": 1, "deltaY": 1, "isEven": true, "name": "p"},
+        {"deltaX": 1, "deltaY": 2, "isEven": true, "name": "pp↓"},
+        {"deltaX": 0, "deltaY": 1, "isEven": true, "name": "F"},
+        {"deltaX": -1, "deltaY": 2, "isEven": true, "name": "nn↓"},
+        {"deltaX": -1, "deltaY": 1, "isEven": true, "name": "n"},
+        {"deltaX": -2, "deltaY": 1, "isEven": true, "name": "nn→"},
+        {"deltaX": 2, "deltaY": 1, "isEven": false, "name": "nn→"},
+        {"deltaX": 1, "deltaY": 1, "isEven": false, "name": "n"},
+        {"deltaX": 1, "deltaY": 2, "isEven": false, "name": "nn↓"},
+        {"deltaX": 0, "deltaY": 1, "isEven": false, "name": "F"},
+        {"deltaX": -1, "deltaY": 2, "isEven": false, "name": "pp↓"},
+        {"deltaX": -1, "deltaY": 1, "isEven": false, "name": "p"},
+        {"deltaX": -2, "deltaY": 1, "isEven": false, "name": "pp←"},
+    ]
+
+    is_identical(compared) {
+        // if comparing to a long stitch,
+        if (compared.x2 && compared.y2) {
+            // if the stitch is exactly the same or with the points flipped, its identical
+            if (
+                this.type == compared.type && this.domain == compared.domain &&
+                ((this.x1 == compared.x1 && 
+                this.y1 == compared.y1 && 
+                this.x2 == compared.x2 && 
+                this.y2 == compared.y2) ||
+                (this.x2 == compared.x1 && 
+                this.y2 == compared.y1 && 
+                this.x1 == compared.x2 && 
+                this.y1 == compared.y2))
+            ) {
+                return true;
+            }
+        }
+        // if not comparing to a long stitch, its not identical
+        else {
+            return false;
+        }
+    }
+
+    // Returns (x, y, domain, stitch) for pattern generation
+    get_instruction() {
+        // start with the uppermost (aka lowest, since y goes top to bottom) stitch
+        let primaryX, primaryY, deltaX, deltaY;
+        // horizontal stitch means B on other domain
+        if (this.y1 == this.y2) {
+            // if showing the foreground color:
+            // y stays the same (background is the "catchup color")
+            if (this.domain = "F") {
+                primaryY = this.y1
+                // if on an even/(right to left)/backfacing row,
+                if (primaryY % 2 == 0) {
+                    primaryX = Math.min(this.x1, this.x2)
+                }
+                // if on an odd/(left to right)/frontfacing row, 
+                else {
+                    primaryX = Math.max(this.x1, this.x2)
+                }
+                return {"x": primaryX, "y": primaryY, "domain": "B", "stitch": "B"};
+            }
+            // if showing the background color:
+            // y moves up 1 (foreground is the "starting color", up is negative)
+            else {
+                console.log("horizontal background stitch is the default")
+                return {"x": -1, "y": -1, "domain": "E", "error": "horizontal background stitch is the default"};
+            }
+        }
+        // y1 on top means first stitch matters
+        else {
+            if (this.y1 < this.y2) {
+                primaryX = this.x1;
+                primaryY = this.y1;
+                deltaX = this.x2 - this.x1;
+                deltaY = this.y2 - this.y1;
+            }
+            // y1 on bottom means second stitch matters
+            else if (this.y1 > this.y2) {
+                primaryX = this.x2;
+                primaryY = this.y2;
+                deltaX = this.x1 - this.x2;
+                deltaY = this.y1 - this.y2;
+            } else {
+                console.log("Something went wrong: Impossible situation while generating pattern")
+                return {"x": -1, "y": -1, "domain": "E", "error": "Something went wrong: Impossible situation while generating pattern"};
+            }
+            // find the stitch with the right deltaX, deltaY, and direction
+            let foundIndex = LongStitch.possibleStitches.findIndex(function (i) { return (i.deltaX == deltaX && i.deltaY == deltaY && i.isEven == (primaryY % 2 == 0))})
+            let foundStitch;
+            if (foundIndex == -1) {
+                return {"x": -1, "y": -1, "domain": "E", "error": `Something went wrong: cannot find a name for a stitch with the given properties (deltaX, deltaY, isEven): ${deltaX}, ${deltaY}, ${primaryY % 2 == 0}`};
+            } else {
+                foundStitch = LongStitch.possibleStitches[foundIndex].name
+            }
+            return {
+                "x": primaryX,
+                "y": primaryY,
+                "domain": this.domain,
+                "stitch": foundStitch
+            }
+        }
+    }
 
     pushX() {
         this.x1++;
@@ -70,25 +236,19 @@ class Stitch {
     pullX() {
         this.x1--;
         this.x2--;
-        // Mark for removal if out of bounds - canvas will handle the actual removal
-        if (this.x1 < 0 || this.x2 < 0) {
-            this.shouldRemove = true;
-        }
     }
 
     pullY() {
         this.y1--;
         this.y2--;
-        // Mark for removal if out of bounds - canvas will handle the actual removal
-        if (this.y1 < 0 || this.y2 < 0) {
-            this.shouldRemove = true;
-        }
     }
 
     cullX(width) {
         if (this.x1 < 0 || this.x1 >= width || this.x2 < 0 || this.x2 >= width) {
             this.shouldRemove = true;
             return true;
+        } else {
+            return false;
         }
     }
 
@@ -96,10 +256,36 @@ class Stitch {
         if (this.y1 < 0 || this.y1 >= height || this.y2 < 0 || this.y2 >= height) {
             this.shouldRemove = true;
             return true;
+        } else {
+            return false;
         }
     }
 }
 
+class PicotStitch extends Stitch {
+    constructor(x1, y1, domain) {
+        super(x1, y1, domain);
+        this.type = "PicotStitch"
+    }
+
+    // Returns (x, y, domain, stitch) for pattern generation
+    get_instruction(){
+        return {"x": this.x1, "y": this.y1, "domain": this.domain, "stitch": "(k)"};
+    }
+}
+
+class FillStitch extends Stitch {
+    constructor(x1, y1, domain) {
+        super(x1, y1, domain);
+        this.type = "FillStitch"
+    }
+
+    // Returns (x, y, domain, stitch) for pattern generation
+    get_instruction(){
+        return {"x": this.x1, "y": this.y1, "domain": this.domain, "stitch": "ff3"};
+    }
+}
+/*
 class Pattern {
     constructor(height, width, stitches) {
         this.rowsNumA = height;
@@ -267,7 +453,7 @@ class Pattern {
 
         return output;
     }
-}
+} 
 
 // Pattern creation function
 function createPattern(stitches, height, width) {
@@ -277,6 +463,7 @@ function createPattern(stitches, height, width) {
     pattern.compress();
     return pattern;
 }
+    */
 
 // Export classes and functions
 // Exports Stitch, Pattern, createPattern

@@ -35,9 +35,9 @@
       <div id="sidebar" class="sidebar space_children">
         <details> <summary>Instructions</summary>
         <p><ul><li>To draw a stitch, click the starting point and then click the ending point.</li>
-          <li>Ctrl+click when ending a stitch to start a new stitch there.</li>
-          <li>To erase a stitch, click the starting and ending point again.</li>
-          <li>Use right-click to place an ff point.</li>
+          <li>Use alt+click to place a picot.</li>
+          <li>Use right-click to place a fill stitch.</li>
+          <li>To erase a stitch, overlap it with the same stitch.</li>
           <li>To add rows or columns, click the gray area around the canvas.</li>
           <li>To remove rows or columns, right-click gray area around the canvas.</li></ul>
         </p>
@@ -78,7 +78,7 @@
             <!-- ko-fi donation button -->
         <script type='text/javascript' src='https://storage.ko-fi.com/cdn/widget/Widget_2.js'></script><script type='text/javascript'>kofiwidget2.init('Support the devs on Ko-fi', '#72a4f2', 'I2I51S7I62');kofiwidget2.draw();</script> 
       </div>
-    <div class="canvas_div" oncontextmenu="return false;"> <!--this prevents context menu in the canvas, but also in the area to the right of it-->
+    <div class="canvas_div" oncontextmenu="return false;" onauxclick="return false;"> <!--this prevents context menu in the canvas, but also in the area to the right of it-->
         <canvas id="designerCanvas" width="20" height="50"></canvas>
     </div>
 </div>
