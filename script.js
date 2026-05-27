@@ -42,8 +42,8 @@ function resetColors() {
 }
 
 // Initialize all functionality when the page is ready
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initializeAllFunctionality);
-} else {
+document.onreadystatechange = () => {
+  if (document.readyState === "complete") {
     initializeAllFunctionality();
-}
+  }
+};

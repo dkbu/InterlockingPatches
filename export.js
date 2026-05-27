@@ -36,8 +36,7 @@ function saveCanvas() {
         backgroundColor: backgroundColorPicker.value, 
         width: canvasWidthInput.value, 
         height: canvasHeightInput.value, 
-        stitches: stitches, 
-        ff: ff
+        stitches: stitches
     });
 
     const blob = new Blob([output], {type: 'text'});
@@ -73,9 +72,8 @@ function readLoaded() {
             stitchNonObjects = dataIn.stitches;
             stitches = [];
             for (stitch of stitchNonObjects) {
-                stitches.push(new Stitch(stitch.x1, stitch.y1, stitch.x2, stitch.y2));
+                toggleStitch(stitch)
             }
-            ff = dataIn.ff;
             resizeCanvas();
         } catch (err) {
             console.log("Something went wrong loading a pattern:", err);

@@ -26,10 +26,12 @@ canvasWidthInput.value = 10;
 canvasHeightInput.value = 10;
 let heldPoint = { x: 0, y: 0, active: false }; // tracks the start point of a stitch, if there is one
 let pixelX, pixelY, foregroundX, foregroundY, backgroundX, backgroundY = 0;
+let currentDomain = "F";
+let inactiveDomain = "B";
+let verbose = false;
 
-// Arrays for stitches and ff points
+// Arrays for stitches
 let stitches = [];
-let ff = [];
 // track undone stitches so they can be re-done
 let undone = [];
 
@@ -59,22 +61,12 @@ function resizeCanvas() {
                 stitches.splice(i, 1);
             }
         }
-        for (let i = ff.length-1; i >= 0; i--) {
-            if (ff[i].x >= backgroundWidth) {
-                ff.splice(i, 1);
-            }
-        }
     }
     if (height < oldHeight) {
         canvasShrank = true;
         for (let i = stitches.length-1; i >= 0; i--) {
             if (stitches[i].cullY(height)) {
                 stitches.splice(i, 1);
-            }
-        }
-        for (let i = ff.length-1; i >= 0; i--) {
-            if (ff[i].y >= backgroundHeight) {
-                ff.splice(i, 1);
             }
         }
     }
@@ -106,6 +98,7 @@ function resizeScreen() {
     backgroundXLimit = gridToPixel(backgroundWidth - 1, background);
     backgroundYLimit = gridToPixel(backgroundHeight - 1, background);
     lineWidth = gridMultiplier / 2.5;
+    picotRadius = lineWidth * 0.9;
     circleRadius = lineWidth / 2;
     thinWidth = lineWidth / 3;
     thinRadius = thinWidth / 2;
@@ -169,27 +162,36 @@ function frame() {
     ctx.stroke();
 
     // draw dynamic pieces on top
-    // draw placed ff's
+    // draw Background FillStitch
     ctx.strokeStyle = backgroundColorPicker.value;
     ctx.beginPath();
-    for (const f of ff) { // for each ff,
+    for (const stitch of stitches.filter((item) => item.type == "FillStitch" && item.domain == "B")) { // for each background fill,
         // move to above the covered grid point
-        ctx.moveTo(gridToPixel(f.x), gridToPixel(f.y) - gridMultiplier / 2);
+        ctx.moveTo(gridToPixel(stitch.x1), gridToPixel(stitch.y1) - gridMultiplier / 2);
 
         // stroke to below the covered grid point
-        ctx.lineTo(gridToPixel(f.x), gridToPixel(f.y) + gridMultiplier / 2);
+        ctx.lineTo(gridToPixel(stitch.x1), gridToPixel(stitch.y1) + gridMultiplier / 2);
     }
     ctx.stroke();
     
     // draw placed stitches
     ctx.globalAlpha = 1;
+    // draw Foreground LongStitch
     ctx.strokeStyle = foregroundColorPicker.value;
     ctx.beginPath();
-    for (const stitch of stitches) {
+    for (const stitch of stitches.filter((item) => item.type == "LongStitch" && item.domain == "F")) {
         ctx.moveTo(gridToPixel(stitch.x1), gridToPixel(stitch.y1));
         ctx.lineTo(gridToPixel(stitch.x2), gridToPixel(stitch.y2));
     }
     ctx.stroke();
+    // draw Foreground PicotStitch
+    ctx.fillStyle = foregroundColorPicker.value;
+    ctx.beginPath();
+    for (const stitch of stitches.filter((item)  => item.type == "PicotStitch" && item.domain == "F")) {
+        ctx.moveTo(gridToPixel(stitch.x1), gridToPixel(stitch.y1));
+        ctx.arc(gridToPixel(stitch.x1), gridToPixel(stitch.y1), picotRadius, 0, pi2);
+    }
+    ctx.fill();
 
     // draw translucent pieces
     ctx.globalAlpha = translucent;
@@ -211,7 +213,7 @@ function frame() {
     }
 }
 
-// remove a stitch when it is outside the workable area
+// remove a stitch when outside the workable area or overlapped
 function removeStitch(removedId) {
     const removedIndex = stitches.findIndex(function (stitch) { return stitch.id === removedId; });
     if (removedIndex === -1) {
@@ -234,121 +236,93 @@ canvas.addEventListener("mousemove", function (evt) {
 canvas.addEventListener("click", function (evt) {
     // if clicking inside the pattern (not the padding), edit the pattern
     if (foregroundX == clamp(foregroundX, 0, width - 1) && foregroundY == clamp(foregroundY, 0, height - 1)) {
-        if (heldPoint.active) { // place a stitch if there's already a held point
+        // if holding Shift, toggle a Picot
+        if (evt.altKey) {
+            toggleStitch({"x1": foregroundX, "y1": foregroundY, "domain": currentDomain, "type": "PicotStitch"});
+        }
+        // if not holding Shift, toggle a long stitch
+        else {
+            if (heldPoint.active) { // place a stitch if there's already a held point
 
-            // delete the held point if clicking in the same spot
-            if (heldPoint.x == foregroundX && heldPoint.y == foregroundY) {
-                heldPoint.active = false;
-
-                // if not deleting, place/remove the stitch and remove/move the held point
-            } else { 
-
-                // consolidate code for which point is x1/y1 and which is x2/y2
-                // the top point is first, or leftmost if both are equally high
-                function definePlacing(i, heldPointFirst) {
-                    let ret = {};
-                    if (heldPointFirst) {
-                        ret.x1 = heldPoint.x+xIncrement*i;
-                        ret.y1 = heldPoint.y+yIncrement*i;
-                        ret.x2 = heldPoint.x+xIncrement*(i+1);
-                        ret.y2 = heldPoint.y+yIncrement*(i+1);
-                    } else {
-                        ret.x1 = heldPoint.x+xIncrement*(i+1);
-                        ret.y1 = heldPoint.y+yIncrement*(i+1);
-                        ret.x2 = heldPoint.x+xIncrement*i;
-                        ret.y2 = heldPoint.y+yIncrement*i;
-                    }
-                    return ret;
-                }
-                
-                // find out how many stitches make up the line drawn
-                // seperate the line into an x and y component and find the longer one
-                const xDelta = foregroundX - heldPoint.x;
-                const yDelta = foregroundY - heldPoint.y;
-                const greaterDistance = Math.max(Math.abs(xDelta), Math.abs(yDelta));
-
-                // find the greatest common factor between the x and y components. This will be the number of stitches drawn
-                let greatestFactor = 1;
-                let xIncrement = xDelta;
-                let yIncrement = yDelta;
-                for (let i = greaterDistance; i > greatestFactor; i--) {
-                    if (xDelta % i == 0 && yDelta % i == 0) {
-                        greatestFactor = i;
-                        xIncrement = xDelta / greatestFactor;
-                        yIncrement = yDelta / greatestFactor;
-                    }
-                }
-
-                // for each stitch in the line drawn, place (or remove) it
-                let placing;
-                for (let i = 0; i < greatestFactor; i++) {
-                    // if placing a horizontal stitch,
-                    if (yDelta == 0) {
-
-                        // put the leftmost point first
-                        // xDelta will be greater than zero when hovered x is greater than held x
-                        // higher x values are further right
-                        if (xDelta > 0) {
-                            placing = definePlacing(i, heldPointFirst = true);
-                        } else {
-                            placing = definePlacing(i, heldPointFirst = false);
-                        }
-
-                        // if not placing a horizontal stitch,
-                    } else {
-
-                        // put the uppermost point first
-                        // higher y values are further down
-                        if (yDelta>0) {
-                            placing = definePlacing(i, heldPointFirst = true);
-                        } else {
-                            placing = definePlacing(i, heldPointFirst = false);
-                        }
-                    }
-
-                    // toggle the stitch
-                    // if the stitch already exists, find it
-                    const indexOfExisting = stitches.findIndex(item =>
-                        item.x1 == placing.x1 &&
-                        item.y1 == placing.y1 &&
-                        item.x2 == placing.x2 &&
-                        item.y2 == placing.y2);
-
-                    // if you didn't find it, add it
-                    if (indexOfExisting == -1) {
-                        stitches.push(new Stitch(placing.x1, placing.y1, placing.x2, placing.y2));
-
-                        // if you did find it, remove it
-                    } else {
-                        stitches = stitches.filter(item =>
-                            !(item.x1 == placing.x1 &&
-                                item.y1 == placing.y1 &&
-                                item.x2 == placing.x2 &&
-                                item.y2 == placing.y2));
-                    }
-                }
-
-                // if ctrl is being held, move the held point to the new spot
-                if (evt.ctrlKey) {
-                    heldPoint.x = foregroundX;
-                    heldPoint.y = foregroundY;
-
-                    // if ctrl isn't being held, remove the held point instead
-                } else {
+                // delete the held point if clicking in the same spot
+                if (heldPoint.x == foregroundX && heldPoint.y == foregroundY) {
                     heldPoint.active = false;
-                }
 
-                // clear the re-do-able stitches to prevent branching with ctrl+y (redo)
-                undone = [];
+                    // if not deleting, place/remove the stitch and remove/move the held point
+                } else { 
+
+                    // consolidate code for which point is x1/y1 and which is x2/y2
+                    // the top point is first, or leftmost if both are equally high
+                    function definePlacing(i, heldPointFirst) {
+                        let ret = {};
+                        if (heldPointFirst) {
+                            ret.x1 = heldPoint.x+xIncrement*i;
+                            ret.y1 = heldPoint.y+yIncrement*i;
+                            ret.x2 = heldPoint.x+xIncrement*(i+1);
+                            ret.y2 = heldPoint.y+yIncrement*(i+1);
+                        } else {
+                            ret.x1 = heldPoint.x+xIncrement*(i+1);
+                            ret.y1 = heldPoint.y+yIncrement*(i+1);
+                            ret.x2 = heldPoint.x+xIncrement*i;
+                            ret.y2 = heldPoint.y+yIncrement*i;
+                        }
+                        return ret;
+                    }
+                    
+                    // find out how many stitches make up the line drawn
+                    // seperate the line into an x and y component and find the longer one
+                    const xDelta = foregroundX - heldPoint.x;
+                    const yDelta = foregroundY - heldPoint.y;
+                    const greaterDistance = Math.max(Math.abs(xDelta), Math.abs(yDelta));
+
+                    // find the greatest common factor between the x and y components. This will be the number of stitches drawn
+                    let greatestFactor = 1;
+                    let xIncrement = xDelta;
+                    let yIncrement = yDelta;
+                    for (let i = greaterDistance; i > greatestFactor; i--) {
+                        if (xDelta % i == 0 && yDelta % i == 0) {
+                            greatestFactor = i;
+                            xIncrement = xDelta / greatestFactor;
+                            yIncrement = yDelta / greatestFactor;
+                        }
+                    }
+
+                    // for each stitch in the line drawn, place (or remove) it
+                    let placing;
+                    for (let i = 0; i < greatestFactor; i++) {
+                        // toggle the stitch
+                        let toToggle = {};
+                        toToggle.x1 = heldPoint.x+xIncrement*i;
+                        toToggle.y1 = heldPoint.y+yIncrement*i;
+                        toToggle.x2 = heldPoint.x+xIncrement*(i+1);
+                        toToggle.y2 = heldPoint.y+yIncrement*(i+1);
+                        toToggle.domain = currentDomain;
+                        toToggle.type = "LongStitch"
+                        toggleStitch(toToggle)
+                        
+                    }
+
+                    // if ctrl is being held, move the held point to the new spot
+                    if (evt.ctrlKey) {
+                        heldPoint.x = foregroundX;
+                        heldPoint.y = foregroundY;
+
+                        // if ctrl isn't being held, remove the held point instead
+                    } else {
+                        heldPoint.active = false;
+                    }
+
+                }
+            } else { // if there's not a held point, hold this point
+                heldPoint.x = foregroundX;
+                heldPoint.y = foregroundY;
+                heldPoint.active = true;
             }
-        } else { // if there's not a held point, hold this point
-            heldPoint.x = foregroundX;
-            heldPoint.y = foregroundY;
-            heldPoint.active = true;
         }
         frame();
-        // if clicking in the padding, expand the grid
-    } else {
+    }
+    // if clicking in the padding, expand the grid
+    else {
         if (pixelX >= canvas.width - padding) {
             canvasWidthInput.value++
         }
@@ -360,17 +334,11 @@ canvas.addEventListener("click", function (evt) {
             for (const stitch of stitches) {
                 stitch.pushX();
             }
-            for (const fill of ff) {
-                fill.x++;
-            }
         }
         if (pixelY <= padding) {
             canvasHeightInput.value++
             for (const stitch of stitches) {
                 stitch.pushY();
-            }
-            for (const fill of ff) {
-                fill.y++;
             }
         }
         resizeCanvas();
@@ -379,18 +347,14 @@ canvas.addEventListener("click", function (evt) {
     }
 });
 
+canvas.addEventListener("auxclick", function(evt) {
+    // not working as middle-mouse-button right now
+})
+
 canvas.addEventListener("contextmenu", function (evt) {
     // if clicking inside the pattern (not the padding), edit the pattern
     if (foregroundX == clamp(foregroundX, 1, width - 2) && foregroundY == clamp(foregroundY, 1, height - 2)) {
-        const indexOfExisting = ff.findIndex(item =>
-            item.x == foregroundX &&
-            item.y == foregroundY);
-        if (indexOfExisting == -1) {
-            ff.push({ x: foregroundX, y: foregroundY });
-        } else {
-            ff.splice(indexOfExisting, 1);
-        }
-        frame();
+        toggleStitch({"x1": foregroundX, "y1": foregroundY, "domain": inactiveDomain, "type": "FillStitch"});
         // if clicking in the padding, shrink the grid and remove stitches exiting the grid
     } else {
         if (pixelX >= canvas.width - padding) {
@@ -398,12 +362,19 @@ canvas.addEventListener("contextmenu", function (evt) {
         }
         if (pixelY >= canvas.height - padding) {
             canvasHeightInput.value--;
+
         }
         if (pixelX <= padding) {
             canvasWidthInput.value--
+            for (const stitch of stitches) {
+                stitch.pullX();
+            }
         }
         if (pixelY <= padding) {
             canvasHeightInput.value--
+            for (const stitch of stitches) {
+                stitch.pullY();
+            }
         }
         resizeCanvas();
         // set which grid coordinate is being clicked
@@ -419,7 +390,7 @@ addEventListener("keydown", (evt) => {
                 if (stitches.length > 0) {
                     // take out the last-made stitch and log it, so it can be re-done later
                     const popped = stitches.pop()
-                    // push to the other array if stitches wasn't empty
+                    // push to the redo-able array if stitches wasn't empty
                     if (popped) { undone.push(popped); }
                     
                 }
@@ -429,6 +400,15 @@ addEventListener("keydown", (evt) => {
                     const popped = undone.pop()
                     if (popped) { stitches.push(popped); }
                 }
+                break;
+            case "KeyV":
+                if(evt.altKey && evt.shiftKey) {
+                    verbose = !verbose;
+                    console.log("toggled Verbose mode to", String(verbose));
+                }
+                break;
+            case "Space":
+                if (verbose) {console.log("Stitches:", stitches)};
                 break;
         }
     }
@@ -458,6 +438,54 @@ function clamp(toClamp, minClamp, maxClamp) {
         return Math.max(maxClamp, Math.min(minClamp, toClamp));
     }
     return Math.max(minClamp, Math.min(maxClamp, toClamp));
+}
+
+function toggleStitch(data = {"x1": -1, "y1": -1, "domain": "E", "type": "Attempted to place a stitch with no stitch information"}) {
+    // toggle the stitch
+    // if the stitch already exists, find it
+    const indexOfExisting = stitches.findIndex(item => item.is_identical(data));
+
+    // if you didn't find it, add it
+    if (indexOfExisting == -1) {
+        switch (data.type) {
+            case "LongStitch":
+                stitches.push(new LongStitch(data.x1, data.y1, data.x2, data.y2, data.domain));
+                break;
+            case "PicotStitch":
+                stitches.push(new PicotStitch(data.x1, data.y1, data.domain));
+                break;
+            case "FillStitch":
+                stitches.push(new FillStitch(data.x1, data.y1, data.domain));
+                break;
+            default:
+                if (data.error) {
+                    console.log("Something went wrong:", data.type);
+                } else {
+                    console.log("Something went wrong: Unknown stitch type", type, "in stitch generation.");
+                }
+        }
+        
+        // test for stitch type verification
+        if (verbose) {console.log("Placed @ [" + String(stitches.length-1) + "]:", stitches[stitches.length-1].get_instruction())}
+
+    } 
+
+    // if you did find it, remove it
+    else {
+        if (verbose) {console.log("Removing @ [" + String(indexOfExisting) + "]:", stitches[indexOfExisting].get_instruction())}
+        removeStitch(stitches[indexOfExisting].id);
+    }
+
+    // clear the re-do-able stitches to prevent branching with ctrl+y (redo)
+    undone = [];
+    frame();
+}
+
+function toggleDomain() {
+    if (verbose) {console.log("Switching domain from", currentDomain, "to", inactiveDomain)};
+    let heldDomain = inactiveDomain; // hold the value of inactive domain to switch over
+    inactiveDomain = currentDomain;
+    currentDomain = heldDomain;
 }
 
 // Getter functions for accessing current state
