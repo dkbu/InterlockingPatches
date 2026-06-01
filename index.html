@@ -82,6 +82,13 @@
 
           <input type="button" id="clearCanvas" value="Clear Canvas" onclick="clearCanvas()"> <br>
 
+          <input type="button" id="stitchViewerBtn" value="Stitch Viewer" style="display:none;"> <br>
+
+          <div id="stitchCounterWindow" class="stitch_counter_window" style="display:none;">
+            <strong>Stitch Counter</strong><br>
+            <span id="stitchCounterText">Click a stitch to view row and column.</span>
+          </div>
+
           <label for="save">Save to a file:</label>
           <input type="button" id="save" name="save" value="Save" onclick="saveCanvas()"> <br>
 

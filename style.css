@@ -42,6 +42,18 @@ body {
     width: 3.5em;
 }
 
+.stitch_counter_window {
+    border: 1px solid #b6b6b6;
+    border-radius: 6px;
+    padding: 8px;
+    background-color: #ffffff;
+    max-width: 16rem;
+}
+
+.stitch-viewer-mode {
+    cursor: zoom-in;
+}
+
 /* thin (mobile) devices have a vertical layout rather than horizontal */
 @media (max-width: 1000px) {
     .container {

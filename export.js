@@ -2,6 +2,7 @@
 
 // Global element references
 let btnExport;
+let btnStitchViewer;
 let loadCanvas;
 
 // Export button click handler
@@ -96,15 +97,20 @@ function initializeAllFunctionality() {
     loadCanvas = document.getElementById("load");
     loadCanvas.addEventListener("change", readLoaded);
 
-    // Export button only in local dev, marked by the existence of 
-    // localdev.js which sets isLocalDev to true
+    // Debug-only controls depend on localdev.js setting isLocalDev to true.
     try {
         if (isLocalDev) {
             btnExport = document.getElementById("exportBtn");
             btnExport.style.display = "inline";
-            btnExport.addEventListener('click', onExportClick);
+            btnExport.addEventListener("click", onExportClick);
+
+            btnStitchViewer = document.getElementById("stitchViewerBtn");
+            if (btnStitchViewer && typeof toggleStitchViewer === "function") {
+                btnStitchViewer.style.display = "inline";
+                btnStitchViewer.addEventListener("click", toggleStitchViewer);
+            }
         }
     } catch (e) {
-        console.log("Production environment detected, hiding export button.");
+        console.log("Production environment detected, hiding debug controls.");
     }
 }

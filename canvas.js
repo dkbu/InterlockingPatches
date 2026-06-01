@@ -17,6 +17,8 @@ const backgroundColorPicker = document.getElementById("backgroundColor");
 const canvasWidthInput = document.getElementById("canvasXStitches");
 const canvasHeightInput = document.getElementById("canvasYStitches");
 const highlightColor = "#6e44e0";
+const stitchCounterWindow = document.getElementById("stitchCounterWindow");
+const stitchCounterText = document.getElementById("stitchCounterText");
 
 // Dynamic variables that change with user input
 let width = 10; // how many *foreground* stitches there are horizontally
@@ -29,6 +31,7 @@ let pixelX, pixelY, foregroundX, foregroundY, backgroundX, backgroundY = 0;
 let currentDomain = "F";
 let inactiveDomain = "B";
 let verbose = false;
+let stitchViewerEnabled = false;
 
 // Arrays for stitches
 let stitches = [];
@@ -223,6 +226,31 @@ function removeStitch(removedId) {
     }
 }
 
+function setStitchCounterMessage(message) {
+    if (stitchCounterText) {
+        stitchCounterText.textContent = message;
+    }
+}
+
+function setStitchViewerState(enabled) {
+    stitchViewerEnabled = enabled;
+    canvas.classList.toggle("stitch-viewer-mode", stitchViewerEnabled);
+
+    if (stitchCounterWindow) {
+        stitchCounterWindow.style.display = stitchViewerEnabled ? "block" : "none";
+    }
+
+    if (stitchViewerEnabled) {
+        heldPoint.active = false;
+        setStitchCounterMessage("Click a stitch to view row and column.");
+    }
+}
+
+function toggleStitchViewer() {
+    setStitchViewerState(!stitchViewerEnabled);
+    frame();
+}
+
 // Event handlers
 canvas.addEventListener("mousemove", function (evt) {
     const canvasPos = canvas.getBoundingClientRect();
@@ -234,6 +262,22 @@ canvas.addEventListener("mousemove", function (evt) {
 });
 
 canvas.addEventListener("click", function (evt) {
+    const canvasPos = canvas.getBoundingClientRect();
+    pixelX = evt.clientX - canvasPos.left;
+    pixelY = evt.clientY - canvasPos.top;
+    getGridPositions();
+
+    // while stitch viewer is active, click only inspects stitches
+    if (stitchViewerEnabled) {
+        if (foregroundX == clamp(foregroundX, 0, width - 1) && foregroundY == clamp(foregroundY, 0, height - 1)) {
+            setStitchCounterMessage(`Row ${foregroundY + 1}, Column ${foregroundX + 1}`);
+        } else {
+            setStitchCounterMessage("Click a stitch inside the foreground grid.");
+        }
+        frame();
+        return;
+    }
+
     // if clicking inside the pattern (not the padding), edit the pattern
     if (foregroundX == clamp(foregroundX, 0, width - 1) && foregroundY == clamp(foregroundY, 0, height - 1)) {
         // if holding Shift, toggle a Picot
@@ -352,6 +396,16 @@ canvas.addEventListener("auxclick", function(evt) {
 })
 
 canvas.addEventListener("contextmenu", function (evt) {
+    const canvasPos = canvas.getBoundingClientRect();
+    pixelX = evt.clientX - canvasPos.left;
+    pixelY = evt.clientY - canvasPos.top;
+    getGridPositions();
+
+    if (stitchViewerEnabled) {
+        evt.preventDefault();
+        return;
+    }
+
     // if clicking inside the pattern (not the padding), edit the pattern
     if (foregroundX == clamp(foregroundX, 1, width - 2) && foregroundY == clamp(foregroundY, 1, height - 2)) {
         toggleStitch({"x1": foregroundX, "y1": foregroundY, "domain": inactiveDomain, "type": "FillStitch"});
