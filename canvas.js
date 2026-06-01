@@ -270,7 +270,7 @@ canvas.addEventListener("click", function (evt) {
     // while stitch viewer is active, click only inspects stitches
     if (stitchViewerEnabled) {
         if (foregroundX == clamp(foregroundX, 0, width - 1) && foregroundY == clamp(foregroundY, 0, height - 1)) {
-            setStitchCounterMessage(`Row ${foregroundY + 1}, Column ${foregroundX + 1}`);
+            setStitchCounterMessage(`Row ${height - foregroundY}, Column ${width - foregroundX}`);
         } else {
             setStitchCounterMessage("Click a stitch inside the foreground grid.");
         }
